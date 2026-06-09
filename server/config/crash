@@ -1,0 +1,50 @@
+Error: Cannot find module '../models/DRDB'
+Require stack:
+- /Users/abeckner/Desktop/DRDB/server/api/controllers/user.js
+- /Users/abeckner/Desktop/DRDB/server/api/routes/user.js
+- /Users/abeckner/Desktop/DRDB/server/app.js
+- /Users/abeckner/Desktop/DRDB/server/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1475:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1048:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1072:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1093:12)
+    at Module._load (node:internal/modules/cjs/loader:1261:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1575:12)
+    at require (node:internal/modules/helpers:191:16)
+    at Object.<anonymous> (/Users/abeckner/Desktop/DRDB/server/api/controllers/user.js:1:15)
+    at Module._compile (node:internal/modules/cjs/loader:1829:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/abeckner/Desktop/DRDB/server/api/controllers/user.js',
+    '/Users/abeckner/Desktop/DRDB/server/api/routes/user.js',
+    '/Users/abeckner/Desktop/DRDB/server/app.js',
+    '/Users/abeckner/Desktop/DRDB/server/server.js'
+  ]
+}
+
+Node.js v26.0.0
+[nodemon] app crashed - waiting for file changes before starting...
+[nodemon] restarting due to changes...
+[nodemon] starting `node server.js`
+[nodemon] restarting due to changes...
+[nodemon] starting `node server.js`
+/Users/abeckner/Desktop/DRDB/server/api/models/DRDB.js:19
+const Family = sequelize.import("../models/SequelizeAuto/Family");
+                               ^
+
+TypeError: sequelize.import is not a function
+    at Object.<anonymous> (/Users/abeckner/Desktop/DRDB/server/api/models/DRDB.js:19:32)
+    at Module._compile (node:internal/modules/cjs/loader:1829:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1969:10)
+    at Module.load (node:internal/modules/cjs/loader:1552:32)
+    at Module._load (node:internal/modules/cjs/loader:1354:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1575:12)
+    at require (node:internal/modules/helpers:191:16)
+    at Object.<anonymous> (/Users/abeckner/Desktop/DRDB/server/api/controllers/user.js:1:15)
+    at Module._compile (node:internal/modules/cjs/loader:1829:14)
+
+Node.js v26.0.0
+[nodemon] app crashed - waiting for file changes before starting...
+
