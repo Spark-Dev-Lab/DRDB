@@ -352,7 +352,7 @@ export default {
       scheduleResultsMode: null,
       lastScheduleQuery: null,
       searchingFields: [
-        { label: "Family ID", field: "FamilyId", width: 2 },
+        { label: "Household ID", field: "FamilyId", width: 2 },
         { label: "Email", field: "Email", width: 3 },
         { label: "Phone", field: "Phone", width: 3 },
         { label: "Primary Caregiver", field: "NamePrimary", width: 2 },

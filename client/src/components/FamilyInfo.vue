@@ -1,9 +1,9 @@
 <template>
   <div>
-    <SectionHeader title="Family Information" icon="mdi-account-group" />
+    <SectionHeader title="Household Information" icon="mdi-account-group" />
 
     <div class="info-grid info-grid--2">
-      <InfoField label="Family ID" :value="currentFamily?.id" icon="mdi-identifier" highlight />
+      <InfoField label="Household ID" :value="currentFamily?.id" icon="mdi-identifier" highlight />
       <InfoField label="Email" :value="currentFamily?.Email" type="email" icon="mdi-email-outline" />
       <InfoField label="Phone" :value="currentFamily?.Phone" type="phone" icon="mdi-phone-outline" />
       <InfoField label="Postal Code" :value="currentFamily?.Address" icon="mdi-map-marker-outline" />
@@ -25,7 +25,7 @@
                 :disabled="!currentFamily?.id"></v-btn>
             </div>
           </template>
-          <span>Edit family information</span>
+          <span>Edit household information</span>
         </v-tooltip>
       </v-col>
     </v-row>
@@ -38,16 +38,16 @@
     <v-dialog v-model="dialog" max-width="1200px" :retain-focus="false">
       <v-card variant="outlined">
         <v-card-title class="d-flex">
-          <span class="text-h5">Edit family information</span>
+          <span class="text-h5">Edit household information</span>
           <v-spacer></v-spacer>
-          <span class="text-h5">{{ "Family ID: " + editedItem.id }}</span>
+          <span class="text-h5">{{ "Household ID: " + editedItem.id }}</span>
         </v-card-title>
         <v-card-text>
           <v-form ref="formFamily" v-model="valid">
             <v-row dense style="padding: 8px 8px 4px">
               <v-col md="12" class="mt-4">
                 <v-divider></v-divider>
-                <h4 class="text-left mt-2">Family information:</h4>
+                <h4 class="text-left mt-2">Household information:</h4>
               </v-col>
               <v-col cols="12" :md="item.width" v-for="item in $familyBasicInfo" :key="item.label">
                 <div v-if="!!item.options">
@@ -169,7 +169,7 @@ export default {
         RecruitmentMethod: null,
       },
       searchingFields: [
-        { label: "Family ID", field: "id" },
+        { label: "Household ID", field: "id" },
         { label: "Postal Code", field: "Address" },
         { label: "Email", field: "Email", rules: "email" },
         { label: "Phone", field: "Phone", rules: "phone" },
@@ -226,7 +226,7 @@ export default {
           this.editedItem.UpdatedBy = this.store.userID;
           await family.update(this.editedItem);
           this.$emit("updateFamily", this.editedItem);
-          console.log("Family information updated!");
+          console.log("Household information updated!");
 
           if (this.$refs.formFamily) {
             this.$refs.formFamily.resetValidation();

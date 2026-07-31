@@ -1962,7 +1962,7 @@ export default {
           "<br><strong>Check if these families have duplicated child records. They probably just have twins.</strong><br>";
         importResults.doubleCheckList.forEach((fam) => {
           alertText +=
-            " - <strong>Family ID</strong>: " +
+            " - <strong>Household ID</strong>: " +
             fam.FK_Family +
             ", <strong>Email</strong>: " +
             fam.Email +

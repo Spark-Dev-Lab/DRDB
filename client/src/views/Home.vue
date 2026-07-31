@@ -71,8 +71,8 @@
                 ><v-icon>mdi-account-multiple-plus</v-icon></v-avatar
               >
               <div>
-                <div class="font-weight-bold text-primary">Add Family</div>
-                <div class="text-caption text-muted">Register a new participant</div>
+                <div class="font-weight-bold text-primary">Add Household</div>
+                <div class="text-caption text-muted">Register a new household</div>
               </div>
             </v-card>
           </v-col>

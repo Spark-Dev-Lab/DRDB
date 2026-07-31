@@ -221,7 +221,7 @@ export default {
       },
       navs: [
         { address: "/home", label: "Home", icon: "mdi-home" },
-        { address: "/family", label: "Family information", icon: "mdi-face-man" },
+        { address: "/family", label: "Household information", icon: "mdi-face-man" },
         { address: "/schedule", label: "Schedule studies", icon: "mdi-phone" },
         {
           address: "/appointment",
@@ -278,7 +278,7 @@ export default {
       // Map addresses to their page names
       const addressToPageName = {
         "/home": "Home",
-        "/family": "Family information",
+        "/family": "Household information",
         "/schedule": "Schedule studies",
         "/appointment": "Study appointments",
         "/study": "Study management",
@@ -289,7 +289,7 @@ export default {
       const pageName = addressToPageName[navAddress];
 
       switch (pageName) {
-        case "Family information":
+        case "Household information":
           return "#BFDBFE"; // Richer blue
         case "Schedule studies":
           return "#FDE68A"; // Richer amber
@@ -310,7 +310,7 @@ export default {
       // Return a slightly darker/saturated version for borders and icons
       const addressToPageName = {
         "/home": "Home",
-        "/family": "Family information",
+        "/family": "Household information",
         "/schedule": "Schedule studies",
         "/appointment": "Study appointments",
         "/study": "Study management",
@@ -321,7 +321,7 @@ export default {
       const pageName = addressToPageName[navAddress];
 
       switch (pageName) {
-        case "Family information":
+        case "Household information":
           return "#3B82F6"; // Blue
         case "Schedule studies":
           return "#F59E0B"; // Amber
@@ -342,7 +342,7 @@ export default {
   computed: {
     pageBackgroundColor() {
       switch (this.$route.name) {
-        case "Family information":
+        case "Household information":
           return "#F0F9FF"; // Very pale blue
         case "Schedule studies":
           return "#FFFBEB"; // Very pale amber

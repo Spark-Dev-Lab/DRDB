@@ -35,14 +35,14 @@
 
             <div class="d-flex align-center">
               <v-chip size="small" variant="tonal" color="primary" prepend-icon="mdi-identifier">
-                Family ID: {{ item.Family?.id }}
+                Household ID: {{ item.Family?.id }}
               </v-chip>
               <v-tooltip location="top">
                 <template v-slot:activator="{ props: copyProps }">
                   <v-btn v-bind="copyProps" icon="mdi-content-copy" variant="text" size="x-small"
                     density="compact" class="ml-1" @click.stop="copyToClipboard(String(item.Family?.id))"></v-btn>
                 </template>
-                <span>Copy Family ID</span>
+                <span>Copy Household ID</span>
               </v-tooltip>
               <v-tooltip location="top">
                 <template v-slot:activator="{ props }">

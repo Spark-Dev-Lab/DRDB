@@ -26,7 +26,7 @@ const routes = [
     },
     {
         path: '/family',
-        name: 'Family information',
+        name: 'Household information',
         component: Family
     },
     {
