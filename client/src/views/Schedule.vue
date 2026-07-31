@@ -79,7 +79,7 @@
 
         <v-card class="ds-card d-flex flex-column flex-grow-1" variant="flat" style="position: relative; overflow: hidden;">
           
-          <!-- Background Family ID -->
+          <!-- Background Household ID -->
           <div style="position: absolute; right: 10px; bottom: 240px; font-size: 120px; font-weight: 900; color: rgba(0,0,0,0.08); z-index: 0; line-height: 0.8; pointer-events: none; user-select: none;" v-if="currentFamily.id">
             {{ currentFamily.id }}{{ currentChild.IdWithinFamily || '' }}
           </div>
@@ -97,7 +97,7 @@
                       {{ currentFamily.NamePrimary || 'Unknown Family' }}
                     </h2>
                     <div class="text-subtitle-2 text-muted d-flex align-center" style="gap: 4px;">
-                      Family ID: {{ currentFamily.id || '—' }}
+                      Household ID: {{ currentFamily.id || '—' }}
                       <v-btn v-if="currentFamily.id" icon="mdi-content-copy" variant="text" size="x-small"
                         density="compact" @click="copyToClipboard(String(currentFamily.id))"></v-btn>
                       <span v-if="familyChildrenCount > 0" class="ml-1">· {{ familyChildrenCount }} {{ familyChildrenCount === 1 ? 'Child' : 'Children' }}</span>
@@ -254,13 +254,13 @@
         </v-card>
 
         <!-- No More Contact (underneath family card) -->
-        <v-card class="ds-card mt-4" variant="flat" v-if="currentChild.id">
+        <v-card class="ds-card mt-4" variant="flat" v-if="hasActiveParticipant">
           <v-card-text class="d-flex justify-space-between align-center py-3">
             <span class="text-caption text-muted">Family requests no more contact?</span>
             <v-tooltip location="top">
               <template v-slot:activator="{ props }">
                 <div v-bind="props">
-                  <v-btn icon size="small" @click="NoMoreContact" :disabled="!currentChild.id">
+                  <v-btn icon size="small" @click="NoMoreContact" :disabled="!currentFamily.id">
                     <v-icon color="warning">mdi-hand-back-right</v-icon>
                   </v-btn>
                 </div>
@@ -273,7 +273,7 @@
 
       <!-- RIGHT COLUMN: Schedule Action + Notes + No More Contact -->
       <v-col cols="12" md="3" class="d-flex flex-column">
-        <template v-if="currentChild.id">
+        <template v-if="hasActiveParticipant">
           <!-- Schedule a study section -->
           <v-card class="ds-card mb-4 elevation-2 border-primary border-opacity-10">
             <v-card-title class="d-flex justify-space-between align-center py-3 bg-grey-lighten-4 border-bottom">
@@ -288,7 +288,7 @@
                 :label="currentChild.scheduled || contactedByOthers
                 ? 'Already scheduled'
                 : 'Parents\' response'" 
-                :disabled="!currentChild.id ||
+                :disabled="!hasActiveParticipant ||
                 currentChild.scheduled ||
                 !store.labEmailStatus ||
                 contactedByOthers" 
@@ -331,7 +331,7 @@
             <v-icon size="64" color="grey-lighten-2" class="mb-4">mdi-calendar-question</v-icon>
             <div class="text-h6 text-muted font-weight-bold">Actions & Notes</div>
             <div class="text-body-2 text-muted px-4 text-center mt-2">
-              Select a study and a child to schedule appointments and view conversations.
+              Select a study and a participant to schedule appointments and view conversations.
             </div>
           </v-card>
         </template>
@@ -412,7 +412,7 @@
         <v-card-title class="d-flex justify-space-between align-center py-4 ds-header-gradient">
           <span class="text-h6 font-weight-bold" style="font-family: var(--ds-font-family-heading)">
             Edit Family & Child Information
-            <span class="text-subtitle-1 text-white ml-2 font-weight-regular" style="opacity: 0.7;">(Family ID: {{ currentFamily.id }})</span>
+            <span class="text-subtitle-1 text-white ml-2 font-weight-regular" style="opacity: 0.7;">(Household ID: {{ currentFamily.id }})</span>
           </span>
           <v-btn icon="mdi-close" variant="text" density="comfortable" @click="closeUnifiedEdit"></v-btn>
         </v-card-title>
@@ -422,9 +422,9 @@
         <v-card-text class="pt-6 pb-2" style="max-height: 70vh;">
           <v-form ref="formUnified" v-model="validUnified">
             
-            <!-- Family Information Section -->
+            <!-- Household Information Section -->
             <div class="mb-6">
-              <div class="text-caption font-weight-bold text-uppercase text-muted mb-3 px-1">Family Information</div>
+              <div class="text-caption font-weight-bold text-uppercase text-muted mb-3 px-1">Household Information</div>
               <v-row dense>
                 <v-col cols="12" :md="item.width" v-for="item in $familyBasicInfo" :key="item.label">
                   <div v-if="!!item.options">
@@ -482,7 +482,7 @@
                       density="compact" hide-details class="mb-2" rows="3"></v-textarea>
                   </v-col>
                   <v-col v-else cols="12" sm="6" :md="item.width || 4">
-                    <v-select v-if="item.options && item.field === 'Sex'" v-model="editedChild[item.field]" :items="$Options[item.options]"
+                    <v-select v-if="item.options && (item.field === 'Sex' || item.field === 'Gender')" v-model="editedChild[item.field]" :items="$Options[item.options]"
                       :label="item.label" variant="outlined" density="compact" hide-details class="mb-2"></v-select>
                     <v-combobox v-else-if="item.options" v-model="editedChild[item.field]" :items="$Options[item.options]"
                       :label="item.label" variant="outlined" density="compact" hide-details class="mb-2"></v-combobox>
@@ -558,7 +558,7 @@
                       density="compact" hide-details class="mb-2" rows="3"></v-textarea>
                   </v-col>
                   <v-col v-else cols="12" sm="6" :md="item.width || 4">
-                    <v-select v-if="item.options && item.field === 'Sex'" v-model="newChildData[item.field]" :items="$Options[item.options]"
+                    <v-select v-if="item.options && (item.field === 'Sex' || item.field === 'Gender')" v-model="newChildData[item.field]" :items="$Options[item.options]"
                       :label="item.label" variant="outlined" density="compact" hide-details class="mb-2"></v-select>
                     <v-combobox v-else-if="item.options" v-model="newChildData[item.field]" :items="$Options[item.options]"
                       :label="item.label" variant="outlined" density="compact" hide-details class="mb-2"></v-combobox>
@@ -661,6 +661,7 @@ import Page from "@/components/Page.vue";
 import ConfirmDlg from "@/components/ConfirmDialog.vue";
 import login from "@/services/login";
 import { useMainStore } from "@/stores/mainStore";
+import { ParticipantTypes } from "@/constants/participantTypes";
 
 export default {
   name: "Schedule",
@@ -720,19 +721,19 @@ export default {
       currentSchedule: {},
       appointments: [],
       currentChild: {
-        Name: null, Sex: null, DoB: null,
+        Name: null, Sex: null, Gender: null, DoB: null,
         Family: { NamePrimary: null, NameSecondary: null, Phone: null, Email: null },
       },
       editedChild: {
-        Name: null, Sex: null, DoB: null,
+        Name: null, Sex: null, Gender: null, DoB: null,
         Family: { NamePrimary: null, NameSecondary: null, Phone: null, Email: null },
       },
       editedFamily: {},
       newChildData: {
-        Name: "", Sex: "", DoB: "", Age: "", Note: "",
+        Name: "", Sex: "", Gender: "", DoB: "", Age: "", Note: "",
       },
       defaultItem: {
-        Name: null, Sex: null, DoB: null,
+        Name: null, Sex: null, Gender: null, DoB: null,
         Family: { NamePrimary: null, NameSecondary: null, Phone: null, Email: null },
       },
       editedIndex: null,
@@ -758,6 +759,14 @@ export default {
   },
 
   computed: {
+    isAdultStudy() {
+      return this.selectedStudy?.ParticipantType === ParticipantTypes.ADULT;
+    },
+
+    hasActiveParticipant() {
+      return this.isAdultStudy ? !!this.currentFamily?.id : !!this.currentChild?.id;
+    },
+
     showEligibleChildSearchPagination() {
       return this.eligibleChildSearchActive && this.eligibleChildSearchTotal > 0;
     },
@@ -989,6 +998,14 @@ export default {
       }
     },
 
+    getParticipantInfoReminderMessage() {
+      if (this.isAdultStudy) {
+        return "Make sure to confirm with the primary contact about their email address and household information.<br><br>Use the <b>Edit Info</b> button to update household and/or participant information.<br><br>Your little effort will benefit everyone in the future!<br><br>Thanks! :)";
+      }
+
+      return "Make sure to confirm with the primary contact about their email address and child information.<br><br>Use the <b>Edit Info</b> button to update household and/or child information.<br><br>Your little effort will benefit everyone in the future!<br><br>Thanks! :)";
+    },
+
     async activateCurrentChild(targetChild, options = {}) {
       const { showReminder = false } = options;
 
@@ -996,7 +1013,9 @@ export default {
       this.currentChild = targetChild;
       this.response = null;
 
-      await this.loadFullChild(this.currentChild);
+      if (!this.isAdultStudy) {
+        await this.loadFullChild(this.currentChild);
+      }
 
       if (this.currentVisitedFamilies.includes(this.currentChild.FK_Family)) {
         this.currentChild.scheduled = true;
@@ -1008,7 +1027,7 @@ export default {
       }
 
       if (showReminder) {
-        await this.$refs.confirmD.open('Reminder', 'Make sure to confirm with parents about their email address and child\'s information.<br><br>Use the <b>Edit Info</b> button to update family and/or child information.<br><br>Your little effort will benefit everyone in the future!<br><br>Thanks! :)', { color: 'primary', noconfirm: true });
+        await this.$refs.confirmD.open('Reminder', this.getParticipantInfoReminderMessage(), { color: 'primary', noconfirm: true });
       }
     },
 
@@ -1041,10 +1060,90 @@ export default {
       }
     },
 
+    mapFamilyToAdultParticipant(familyRecord) {
+      return {
+        id: null,
+        Name: familyRecord?.NamePrimary || "",
+        Sex: null,
+        Gender: null,
+        DoB: familyRecord?.DoBPrimary || null,
+        FK_Family: familyRecord?.id || null,
+        IdWithinFamily: "",
+        Family: familyRecord || {},
+      };
+    },
+
+    async loadEligibleAdultFamilyPage(offset = 0, options = {}) {
+      const { showReminder = false } = options;
+      const result = await family.search({
+        ...this.lastEligibleChildQuery,
+        trainingMode: this.store.trainingMode,
+        limit: this.eligibleChildSearchLimit,
+        offset,
+      });
+
+      const payload = result.data || {};
+      const families = payload.families || [];
+      const pagination = payload.pagination || {};
+
+      this.eligibleChildSearchLimit = pagination.limit || this.eligibleChildSearchLimit;
+      this.eligibleChildSearchOffset = pagination.offset || 0;
+      this.eligibleChildSearchTotal = pagination.total || 0;
+      this.eligibleChildSearchActive = true;
+
+      if (families.length > 0) {
+        this.Children = families.map(this.mapFamilyToAdultParticipant);
+        await this.activateCurrentChild(this.Children[0], { showReminder });
+      } else {
+        await this.$refs.confirmD.open('No Results', 'No eligible families were found for this adult study.', { color: 'warning', noconfirm: true });
+        this.page = 0;
+        this.Children = [];
+        this.currentChild = Object.assign({}, this.defaultItem);
+        this.contactedByOthers = false;
+      }
+    },
+
     async searchChild() {
       this.store.setLoadingStatus(true);
 
       await this.releaseCurrentChildVisitLock();
+
+      if (this.isAdultStudy) {
+        try {
+          const groups = this.selectedStudy.AgeGroups || [];
+          let minAge, maxAge;
+
+          if (this.activeAgeGroup) {
+            minAge = this.activeAgeGroup.MinAge;
+            maxAge = this.activeAgeGroup.MaxAge;
+          } else if (groups.length > 0) {
+            minAge = Math.min(...groups.map(g => g.MinAge));
+            maxAge = Math.max(...groups.map(g => g.MaxAge));
+          }
+
+          if (minAge == null || maxAge == null) {
+            this.store.setLoadingStatus(false);
+            await this.$refs.confirmD.open(
+              'No Age Groups',
+              'This adult study has no age groups configured. Please add an age range in years before searching for eligible households.',
+              { color: 'warning', noconfirm: true }
+            );
+            return;
+          }
+
+          this.lastEligibleChildQuery = {
+            minAge,
+            maxAge,
+          };
+          await this.loadEligibleAdultFamilyPage(0, { showReminder: true });
+        } catch (error) {
+          if (error.response?.status !== 401) console.error(error);
+        }
+
+        this.response = null;
+        setTimeout(() => this.store.setLoadingStatus(false), 500);
+        return;
+      }
 
       // Compute age range: use actively selected group or overall min/max across all groups
       const groups = this.selectedStudy.AgeGroups || [];
@@ -1110,7 +1209,12 @@ export default {
       this.store.setLoadingStatus(true);
       await this.releaseCurrentChildVisitLock();
       try {
-        await this.loadEligibleChildPage(this.eligibleChildSearchOffset + this.eligibleChildSearchLimit);
+        const nextOffset = this.eligibleChildSearchOffset + this.eligibleChildSearchLimit;
+        if (this.isAdultStudy) {
+          await this.loadEligibleAdultFamilyPage(nextOffset);
+        } else {
+          await this.loadEligibleChildPage(nextOffset);
+        }
       } catch (error) {
         if (error.response?.status !== 401) console.error(error);
       }
@@ -1122,7 +1226,12 @@ export default {
       this.store.setLoadingStatus(true);
       await this.releaseCurrentChildVisitLock();
       try {
-        await this.loadEligibleChildPage(Math.max(0, this.eligibleChildSearchOffset - this.eligibleChildSearchLimit));
+        const previousOffset = Math.max(0, this.eligibleChildSearchOffset - this.eligibleChildSearchLimit);
+        if (this.isAdultStudy) {
+          await this.loadEligibleAdultFamilyPage(previousOffset);
+        } else {
+          await this.loadEligibleChildPage(previousOffset);
+        }
       } catch (error) {
         if (error.response?.status !== 401) console.error(error);
       }
@@ -1179,7 +1288,7 @@ export default {
 
     addNewChild() {
       this.newChildData = {
-        Name: "", Sex: "", DoB: "", Age: "", Note: "",
+        Name: "", Sex: "", Gender: "", DoB: "", Age: "", Note: "",
         FK_Family: this.currentFamily.id,
       };
       this.dialogAddChild = true;
@@ -1279,7 +1388,7 @@ export default {
     closeAddChild() {
       this.dialogAddChild = false;
       setTimeout(() => {
-        this.newChildData = { Name: "", Sex: "", DoB: "", Age: "", Note: "" };
+        this.newChildData = { Name: "", Sex: "", Gender: "", DoB: "", Age: "", Note: "" };
       }, 300);
     },
 
@@ -1300,10 +1409,11 @@ export default {
 
         this.appointments = [];
         const newAppointment = Object.assign({}, this.defaultAppointment);
-        newAppointment.FK_Child = this.currentChild.id;
-        newAppointment.FK_Family = this.currentChild.FK_Family;
+        newAppointment.FK_Child = this.isAdultStudy ? null : this.currentChild.id;
+        newAppointment.FK_Family = this.currentFamily.id || this.currentChild.FK_Family;
         newAppointment.FK_Study = this.selectedStudy.id;
-        newAppointment.Child = this.currentChild;
+        newAppointment.Child = this.isAdultStudy ? null : this.currentChild;
+        newAppointment.Family = this.currentFamily;
         newAppointment.Study = this.selectedStudy;
         newAppointment.status = this.response;
         this.appointments.push(newAppointment);
@@ -1311,7 +1421,7 @@ export default {
         this.currentSchedule = {
           AppointmentTime: null,
           Status: this.response,
-          FK_Family: this.currentChild.FK_Family,
+          FK_Family: this.currentFamily.id || this.currentChild.FK_Family,
           Appointments: this.appointments,
           Note: null,
           ScheduledBy: this.store.userID,
@@ -1370,6 +1480,7 @@ export default {
 
     // Lazy-load full child+family data when a child is selected
     async loadFullChild(targetChild) {
+      if (!targetChild?.id) return;
       try {
         const result = await child.search({ id: targetChild.id, trainingMode: this.store.trainingMode });
         if (result.data && result.data.length > 0) {

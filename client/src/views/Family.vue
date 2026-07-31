@@ -30,7 +30,7 @@
           @click="addFamily"
           prepend-icon="mdi-account-multiple-plus"
         >
-          New Family
+          New Household
         </v-btn>
 
         <v-btn
@@ -54,7 +54,7 @@
           v-if="['Admin', 'PI', 'Lab manager'].includes(store.role)"
           prepend-icon="mdi-delete"
         >
-          Delete Family
+          Delete Household
         </v-btn>
 
         <v-spacer></v-spacer>
@@ -67,7 +67,7 @@
           :disabled="!currentFamily.id"
           prepend-icon="mdi-pencil"
         >
-          Edit Family
+          Edit Household
         </v-btn>
 
         <v-btn
@@ -152,14 +152,14 @@
     </v-card>
 
     <v-row class="mt-4 mx-n1" style="align-items: stretch">
-      <!-- LEFT COLUMN: Search + Family Info -->
+      <!-- LEFT COLUMN: Search + Household Info -->
       <v-col cols="12" md="5" class="d-flex px-1">
         <v-card
           class="ds-card h-100 d-flex flex-column"
           variant="flat"
           style="position: relative; overflow: hidden; height: 500px; width: 100%"
         >
-          <!-- Background Family ID -->
+          <!-- Background Household ID -->
           <div
             style="
               position: absolute;
@@ -200,7 +200,7 @@
                       class="text-subtitle-2 text-muted d-flex align-center"
                       style="gap: 4px"
                     >
-                      Family ID: {{ currentFamily.id || "—" }}
+                      Household ID: {{ currentFamily.id || "—" }}
                       <v-btn
                         v-if="currentFamily.id"
                         icon="mdi-content-copy"
@@ -490,9 +490,9 @@
             <v-icon size="64" color="grey-lighten-2" class="mb-4"
               >mdi-home-search-outline</v-icon
             >
-            <div class="text-h6 text-muted font-weight-bold mb-2">No Family Selected</div>
+            <div class="text-h6 text-muted font-weight-bold mb-2">No Household Selected</div>
             <div class="text-body-2 text-muted px-4">
-              Click "Search" above to find a family, or use the navigation arrows if you
+              Click "Search" above to find a household, or use the navigation arrows if you
               have already searched.
             </div>
             <v-btn
@@ -502,7 +502,7 @@
               @click="searchMode"
               prepend-icon="mdi-magnify"
             >
-              Search Families
+              Search Households
             </v-btn>
           </v-card-text>
         </v-card>
@@ -518,7 +518,7 @@
               class="text-h6 font-weight-bold"
               style="font-family: var(--ds-font-family-heading)"
             >
-              {{ editedIndex === -1 ? "Add a new family" : "Edit family information" }}
+              {{ editedIndex === -1 ? "Add a new household" : "Edit household information" }}
               <span
                 v-if="editedIndex !== -1"
                 class="text-subtitle-1 text-muted ml-2 font-weight-regular"
@@ -541,7 +541,7 @@
                 <div
                   class="text-caption font-weight-bold text-uppercase text-muted mb-3 px-1"
                 >
-                  Family Information
+                  Household Information
                 </div>
                 <v-row dense>
                   <v-col
@@ -553,7 +553,7 @@
                   >
                     <div v-if="item.options">
                       <v-combobox
-                        v-if="item.field !== 'AutismHistory'"
+                        v-if="item.field !== 'AutismHistory' && item.field !== 'PrimaryGenderIdentity' && item.field !== 'SecondaryGenderIdentity'"
                         class="textfield-family mb-2"
                         v-model="editedItem[item.field]"
                         :items="Options[item.options]"
@@ -576,15 +576,43 @@
                       ></v-select>
                     </div>
                     <div v-else>
-                      <v-text-field
-                        class="textfield-family mb-2"
-                        :label="item.label"
-                        v-model="editedItem[item.field]"
-                        :rules="item.rules ? $rules[item.rules] : []"
-                        variant="outlined"
-                        hide-details="auto"
-                        density="compact"
-                      ></v-text-field>
+                      <template v-if="item.field === 'DoBPrimary'">
+                        <v-menu v-model="dobMenuPrimary" :close-on-content-click="false" location="bottom start">
+                          <template v-slot:activator="{ props: menuProps }">
+                            <v-text-field
+                              v-model="editedItem.DoBPrimary"
+                              :label="item.label"
+                              :rules="$rules.dob"
+                              variant="outlined"
+                              density="compact"
+                              hide-details="auto"
+                              class="mb-2"
+                              placeholder="YYYY-MM-DD"
+                            >
+                              <template v-slot:append-inner>
+                                <v-icon v-bind="menuProps" style="cursor:pointer">mdi-calendar</v-icon>
+                              </template>
+                            </v-text-field>
+                          </template>
+                          <v-date-picker
+                            v-model="dobPickerPrimaryDate"
+                            @update:model-value="onDobPrimaryPickerEdit"
+                            hide-header
+                            show-adjacent-months
+                          ></v-date-picker>
+                        </v-menu>
+                      </template>
+                      <template v-else>
+                        <v-text-field
+                          class="textfield-family mb-2"
+                          :label="item.label"
+                          v-model="editedItem[item.field]"
+                          :rules="item.rules ? $rules[item.rules] : []"
+                          variant="outlined"
+                          hide-details="auto"
+                          density="compact"
+                        ></v-text-field>
+                      </template>
                     </div>
                   </v-col>
                 </v-row>
@@ -627,7 +655,7 @@
               variant="flat"
               @click="save"
               prepend-icon="mdi-content-save"
-              >Save Family</v-btn
+              >Save Household</v-btn
             >
           </v-card-actions>
         </v-card>
@@ -642,7 +670,7 @@
             <span
               class="text-h6 font-weight-bold"
               style="font-family: var(--ds-font-family-heading)"
-              >Search Families</span
+              >Search Households</span
             >
             <v-btn
               icon="mdi-close"
@@ -713,7 +741,7 @@
               @click="searchFamily"
               prepend-icon="mdi-magnify"
             >
-              Find Families
+              Find Households
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -752,6 +780,9 @@
                   style="line-height: 1.4; opacity: 1"
                 >
                   {{ currentFamily.NamePrimary || "Not provided" }}
+                  <span v-if="currentFamily.PrimaryGenderIdentity">
+                    | Gender Identity: {{ currentFamily.PrimaryGenderIdentity }}</span
+                  >
                 </v-list-item-subtitle>
               </v-list-item>
 
@@ -761,13 +792,16 @@
                 v-if="currentFamily.NameSecondary"
               >
                 <v-list-item-title class="text-caption text-muted"
-                  >Secondary Caregiver</v-list-item-title
+                  >Secondary Contact</v-list-item-title
                 >
                 <v-list-item-subtitle
                   class="font-weight-medium text-wrap mt-1"
                   style="line-height: 1.4; opacity: 1"
                 >
                   {{ currentFamily.NameSecondary }}
+                  <span v-if="currentFamily.SecondaryGenderIdentity">
+                    | Gender Identity: {{ currentFamily.SecondaryGenderIdentity }}</span
+                  >
                 </v-list-item-subtitle>
               </v-list-item>
 
@@ -904,20 +938,20 @@
           <v-icon size="64" color="grey-lighten-2" class="mb-4">mdi-forum-outline</v-icon>
           <div class="text-h6 text-muted font-weight-bold">Notes & Conversations</div>
           <div class="text-body-2 text-muted px-4 text-center mt-2">
-            Select a family to view their communication history.
+            Select a household to view communication history.
           </div>
         </v-card>
       </v-col>
     </v-row>
 
-    <!-- Delete Family Dialog -->
+    <!-- Delete Household Dialog -->
     <v-dialog v-model="deleteFamilyDialog" max-width="500px">
       <v-card class="ds-card" variant="flat">
         <v-card-title class="text-h6 font-weight-bold bg-error text-white py-3">
-          Delete Family?
+          Delete Household?
         </v-card-title>
         <v-card-text class="pt-6 pb-2">
-          Are you sure you want to delete this family? This action will remove the family,
+          Are you sure you want to delete this household? This action will remove the household,
           associated children, and appointments from the database completely. This action
           cannot be undone.
         </v-card-text>
@@ -1373,6 +1407,8 @@ export default {
       scheduleToDelete: null,
       isDeletingTimelineSchedule: false,
       dialog: false,
+      dobMenuPrimary: false,
+      dobPickerPrimaryDate: null,
       valid: true,
       editedIndex: -1,
       editedItem: {
@@ -1381,7 +1417,10 @@ export default {
         Phone: null,
         CellPhone: null,
         NamePrimary: null,
+        PrimaryGenderIdentity: null,
+        DoBPrimary: null,
         NameSecondary: null,
+        SecondaryGenderIdentity: null,
         Address: null,
         LanguagePrimary: null,
         LanguageSecondary: null,
@@ -1399,7 +1438,10 @@ export default {
         Phone: null,
         CellPhone: null,
         NamePrimary: null,
+        PrimaryGenderIdentity: null,
+        DoBPrimary: null,
         NameSecondary: null,
+        SecondaryGenderIdentity: null,
         Address: null,
         LanguagePrimary: null,
         LanguageSecondary: null,
@@ -1418,7 +1460,10 @@ export default {
         Phone: null,
         CellPhone: null,
         NamePrimary: null,
+        PrimaryGenderIdentity: null,
+        DoBPrimary: null,
         NameSecondary: null,
+        SecondaryGenderIdentity: null,
         Address: null,
         LanguagePrimary: null,
         LanguageSecondary: null,
@@ -1448,7 +1493,7 @@ export default {
           width: "3",
           searchable: true,
         },
-        { label: "Family ID", field: "id", width: "2", searchable: true },
+        { label: "Household ID", field: "id", width: "2", searchable: true },
         {
           label: "Primary Caregiver",
           field: "NamePrimary",
@@ -1462,21 +1507,21 @@ export default {
           width: "4",
           options: "language",
         },
-        { label: "Race (P)", field: "RacePrimary", width: "3", options: "race" },
+        { label: "Race (Primary)", field: "RacePrimary", width: "3", options: "race" },
         {
-          label: "Secondary Caregiver",
+          label: "Secondary Contact",
           field: "NameSecondary",
           width: "4",
           rules: "name",
           searchable: true,
         },
         {
-          label: "Language (S)",
+          label: "Language (Secondary)",
           field: "LanguageSecondary",
           width: "4",
           options: "language",
         },
-        { label: "Race (S)", field: "RaceSecondary", width: "3", options: "race" },
+        { label: "Race (Secondary)", field: "RaceSecondary", width: "3", options: "race" },
         { label: "Vehicle", field: "Vehicle", width: "5" },
         { label: "Address", field: "Address", width: "5" },
         { label: "English %", width: "2", field: "EnglishPercent" },
@@ -1501,33 +1546,51 @@ export default {
       ],
       familyBasicInfo: [
         {
-          label: "Primary Caregiver",
+          label: "Primary Contact",
           field: "NamePrimary",
           rules: "name",
-          width: "4",
+          width: "12",
           searchable: true,
         },
         {
-          label: "Language (P)",
+          label: "Primary Contact Gender Identity",
+          field: "PrimaryGenderIdentity",
+          width: "4",
+          options: "genderIdentity",
+        },
+        {
+          label: "Primary Contact Birthdate",
+          field: "DoBPrimary",
+          rules: "date",
+          width: "4",
+        },
+        {
+          label: "Language (Primary)",
           field: "LanguagePrimary",
           width: "4",
           options: "language",
         },
-        { label: "Race (P)", field: "RacePrimary", width: "3", options: "race" },
+        { label: "Race (Primary)", field: "RacePrimary", width: "3", options: "race" },
         {
-          label: "Secondary Caregiver",
+          label: "Secondary Contact",
           field: "NameSecondary",
-          width: "4",
+          width: "12",
           rules: "name",
           searchable: true,
         },
         {
-          label: "Language (S)",
+          label: "Secondary Contact Gender Identity",
+          field: "SecondaryGenderIdentity",
+          width: "4",
+          options: "genderIdentity",
+        },
+        {
+          label: "Language (Secondary)",
           field: "LanguageSecondary",
           width: "4",
           options: "language",
         },
-        { label: "Race (S)", field: "RaceSecondary", width: "3", options: "race" },
+        { label: "Race (Secondary)", field: "RaceSecondary", width: "3", options: "race" },
         { label: "English %", width: "3", field: "EnglishPercent" },
         { label: "Postal Code", field: "Address", width: "3" },
         {
@@ -1552,8 +1615,8 @@ export default {
         {
           category: "General Identification",
           fields: [
-            { label: "Family ID", field: "id", width: "4" },
-            { label: "Caregiver Name", field: "NamePrimary", width: "4" },
+            { label: "Household ID", field: "id", width: "4" },
+            { label: "Primary Contact", field: "NamePrimary", width: "4" },
             { label: "Child Name", field: "childName", width: "4" },
           ],
         },
@@ -1571,7 +1634,20 @@ export default {
           { title: "No", value: 0 },
           { title: "Unknown", value: null },
         ],
-        sex: ["F", "M"],
+        sex: [
+          { title: "Female", value: "F" },
+          { title: "Male", value: "M" },
+          { title: "Intersex", value: "I" },
+        ],
+        genderIdentity: [
+          { title: "Female", value: "Female" },
+          { title: "Male", value: "Male" },
+          { title: "Non-Binary", value: "Non-Binary" },
+          { title: "Gender Fluid", value: "Gender Fluid" },
+          { title: "Transgender", value: "Transgender" },
+          { title: "Prefer Not to Say", value: "Prefer Not to Say" },
+          { title: "Not Applicable", value: "Not Applicable" },
+        ],
         language: ["English", "French", "Chinese", "Spanish", "Hindi"],
         race: ["Indian", "Asian", "African", "Hispanic", "Caucasian", "Arabic"],
         recruitmentMethod: ["Hospital", "Events", "SocialMedia", "PreviousParticipation"],
@@ -1911,13 +1987,31 @@ export default {
       }
       this.editedIndex = -1;
       this.editedItem = Object.assign({}, this.familyTemplate);
+      this.dobMenuPrimary = false;
+      this.dobPickerPrimaryDate = null;
       this.dialog = true;
     },
 
     editFamily() {
       this.editedIndex = this.Families.indexOf(this.currentFamily);
       this.editedItem = Object.assign({}, this.currentFamily);
+      if (this.editedItem.DoBPrimary) {
+        this.editedItem.DoBPrimary = moment(this.editedItem.DoBPrimary).format("YYYY-MM-DD");
+        this.dobPickerPrimaryDate = new Date(this.editedItem.DoBPrimary + "T12:00:00");
+      } else {
+        this.dobPickerPrimaryDate = null;
+      }
       this.dialog = true;
+    },
+
+    onDobPrimaryPickerEdit(date) {
+      if (!date) return;
+      const d = new Date(date);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      this.editedItem.DoBPrimary = `${yyyy}-${mm}-${dd}`;
+      this.dobMenuPrimary = false;
     },
 
     async save() {
@@ -1930,7 +2024,7 @@ export default {
 
           await family.update(this.editedItem);
           Object.assign(this.Families[this.editedIndex], this.editedItem);
-          console.log("Family information updated!");
+          console.log("Household information updated!");
         } else {
           this.editedItem.LastContactDate = new Date();
           this.editedItem.NextContactDate = new Date();
@@ -1966,12 +2060,12 @@ export default {
           } else {
             this.$refs.confirmD.open(
               "Error",
-              "Failed to save family. Please check your input and try again.",
+              "Failed to save household. Please check your input and try again.",
               { color: "error", noconfirm: true }
             );
           }
         } else {
-          this.$refs.confirmD.open("Error", "Failed to save family. Please try again.", {
+          this.$refs.confirmD.open("Error", "Failed to save household. Please try again.", {
             color: "error",
             noconfirm: true,
           });
@@ -1981,8 +2075,10 @@ export default {
 
     close() {
       this.dialog = false;
+      this.dobMenuPrimary = false;
       setTimeout(() => {
         this.editedItem = Object.assign({}, this.familyTemplate);
+        this.dobPickerPrimaryDate = null;
         this.editedIndex = -1;
       }, 300);
     },
@@ -2093,8 +2189,8 @@ export default {
           this.currentFamily = Object.assign({}, this.familyTemplate);
         }
       } catch (error) {
-        console.error("Family delete error:", error);
-        alert("Failed to delete family.");
+        console.error("Household delete error:", error);
+        alert("Failed to delete household.");
       } finally {
         this.isDeletingFamily = false;
       }

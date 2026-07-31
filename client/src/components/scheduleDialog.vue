@@ -57,6 +57,7 @@
                         ref="appointmentDetailsRef" 
                         :Appointments="currentSchedule?.Appointments"
                         :Children="currentFamily?.Children" 
+                        :currentFamily="currentFamily"
                         :scheduleType="scheduleType"
                         :parentResponse="parentResponse"
                         :showAdditionalAppointments="scheduleEnable && hasRecruitableChildrenFlag"

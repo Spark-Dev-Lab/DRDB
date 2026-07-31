@@ -224,6 +224,12 @@
                 <v-chip size="small" variant="tonal" color="primary" class="mr-2">{{
                   study.StudyType
                 }}</v-chip>
+                <v-chip size="small" variant="outlined" color="secondary" class="mr-2">{{
+                  study.ParticipantType || "Child"
+                }}</v-chip>
+                <v-chip size="small" variant="outlined" color="secondary" class="mr-2">{{
+                  study.ParticipantType || "Child"
+                }}</v-chip>
                 <v-chip
                   size="small"
                   :color="study.Completed ? 'success' : 'warning'"
@@ -1215,9 +1221,10 @@
                         :items="[
                           'Behavioural',
                           'EEG/ERP',
-                          'EyeTracking',
-                          'fNIRS',
-                          'Online',
+                          'HeadMountedEyeTracking',
+                          'ScreenEyeTracking',
+                          'OnlineSynchronous',
+                          'OnlineAsynchronous',
                         ]"
                         variant="outlined"
                         density="compact"
@@ -1261,66 +1268,148 @@
                   </h2>
 
                   <v-card class="ds-card pa-6 mb-6" variant="flat">
-                    <h3 class="text-h6 mb-4">Age Groups</h3>
-                    <v-row
-                      v-for="(group, index) in editedStudy.AgeGroups"
-                      :key="index"
-                      dense
-                      align="center"
-                    >
-                      <v-col cols="5">
-                        <v-text-field
-                          v-model.number="group.MinAge"
-                          label="Min Age (months)"
-                          type="number"
-                          variant="outlined"
-                          density="compact"
-                          :rules="[
-                            (v) => (v !== null && v !== '') || 'Required',
-                            (v) => v >= 0 || 'Must be ≥ 0',
-                            (v) =>
-                              group.MaxAge === null ||
-                              group.MaxAge === '' ||
-                              v < group.MaxAge ||
-                              'Must be less than Max Age',
-                          ]"
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="5">
-                        <v-text-field
-                          v-model.number="group.MaxAge"
-                          label="Max Age (months)"
-                          type="number"
-                          variant="outlined"
-                          density="compact"
-                          :rules="[
-                            (v) => (v !== null && v !== '') || 'Required',
-                            (v) => v >= 0 || 'Must be ≥ 0',
-                            (v) =>
-                              group.MinAge === null ||
-                              group.MinAge === '' ||
-                              v > group.MinAge ||
-                              'Must be greater than Min Age',
-                          ]"
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="2" class="text-center">
-                        <v-btn
-                          icon="mdi-delete-outline"
-                          color="error"
-                          variant="text"
-                          @click="editedStudy.AgeGroups.splice(index, 1)"
-                        ></v-btn>
-                      </v-col>
-                    </v-row>
-                    <v-btn
-                      variant="tonal"
+                    <h3 class="text-h6 mb-2">Participant Group</h3>
+                    <div class="text-body-2 text-muted mb-4">
+                      Choose whether this is a child or adult study before setting eligibility rules.
+                    </div>
+                    <v-radio-group
+                      v-model="editedStudy.ParticipantType"
+                      inline
                       color="primary"
-                      prepend-icon="mdi-plus"
-                      @click="editedStudy.AgeGroups.push({ MinAge: null, MaxAge: null })"
+                      :rules="[(v) => !!v || 'Required']"
+                      @update:model-value="onParticipantTypeChanged"
                     >
-                      Add Age Group
-                    </v-btn>
+                      <v-radio label="Child study" value="Child"></v-radio>
+                      <v-radio label="Adult study" value="Adult"></v-radio>
+                    </v-radio-group>
+                  </v-card>
+
+                  <v-card class="ds-card pa-6 mb-6" variant="flat">
+                    <h3 class="text-h6 mb-4">Age Groups</h3>
+                    <template v-if="editedStudy.ParticipantType !== 'Adult'">
+                      <v-row
+                        v-for="(group, index) in editedStudy.AgeGroups"
+                        :key="index"
+                        dense
+                        align="center"
+                      >
+                        <v-col cols="5">
+                          <v-text-field
+                            v-model.number="group.MinAge"
+                            label="Min Age (months)"
+                            type="number"
+                            variant="outlined"
+                            density="compact"
+                            :rules="[
+                              (v) => (v !== null && v !== '') || 'Required',
+                              (v) => v >= 0 || 'Must be ≥ 0',
+                              (v) =>
+                                group.MaxAge === null ||
+                                group.MaxAge === '' ||
+                                v < group.MaxAge ||
+                                'Must be less than Max Age',
+                            ]"
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="5">
+                          <v-text-field
+                            v-model.number="group.MaxAge"
+                            label="Max Age (months)"
+                            type="number"
+                            variant="outlined"
+                            density="compact"
+                            :rules="[
+                              (v) => (v !== null && v !== '') || 'Required',
+                              (v) => v >= 0 || 'Must be ≥ 0',
+                              (v) =>
+                                group.MinAge === null ||
+                                group.MinAge === '' ||
+                                v > group.MinAge ||
+                                'Must be greater than Min Age',
+                            ]"
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="2" class="text-center">
+                          <v-btn
+                            icon="mdi-delete-outline"
+                            color="error"
+                            variant="text"
+                            @click="editedStudy.AgeGroups.splice(index, 1)"
+                          ></v-btn>
+                        </v-col>
+                      </v-row>
+                      <v-btn
+                        variant="tonal"
+                        color="primary"
+                        prepend-icon="mdi-plus"
+                        @click="editedStudy.AgeGroups.push({ MinAge: null, MaxAge: null })"
+                      >
+                        Add Age Group
+                      </v-btn>
+                    </template>
+                    <template v-else>
+                      <v-row
+                        v-for="(group, index) in editedStudy.AgeGroups"
+                        :key="`adult-${index}`"
+                        dense
+                        align="center"
+                      >
+                        <v-col cols="5">
+                          <v-text-field
+                            :model-value="adultYearsFromMonths(group.MinAge)"
+                            @update:model-value="setAdultAgeBoundary(group, 'MinAge', $event)"
+                            label="Min Age (years)"
+                            type="number"
+                            variant="outlined"
+                            density="compact"
+                            :rules="[
+                              (v) => (v !== null && v !== '') || 'Required',
+                              (v) => Number(v) >= 0 || 'Must be ≥ 0',
+                              (v) =>
+                                group.MaxAge === null ||
+                                group.MaxAge === '' ||
+                                Number(v) < adultYearsFromMonths(group.MaxAge) ||
+                                'Must be less than Max Age',
+                            ]"
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="5">
+                          <v-text-field
+                            :model-value="adultYearsFromMonths(group.MaxAge)"
+                            @update:model-value="setAdultAgeBoundary(group, 'MaxAge', $event)"
+                            label="Max Age (years)"
+                            type="number"
+                            variant="outlined"
+                            density="compact"
+                            :rules="[
+                              (v) => (v !== null && v !== '') || 'Required',
+                              (v) => Number(v) >= 0 || 'Must be ≥ 0',
+                              (v) =>
+                                group.MinAge === null ||
+                                group.MinAge === '' ||
+                                Number(v) > adultYearsFromMonths(group.MinAge) ||
+                                'Must be greater than Min Age',
+                            ]"
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="2" class="text-center">
+                          <v-btn
+                            icon="mdi-delete-outline"
+                            color="error"
+                            variant="text"
+                            @click="editedStudy.AgeGroups.splice(index, 1)"
+                          ></v-btn>
+                        </v-col>
+                      </v-row>
+                      <v-btn
+                        variant="tonal"
+                        color="primary"
+                        prepend-icon="mdi-plus"
+                        @click="editedStudy.AgeGroups.push({ MinAge: null, MaxAge: null })"
+                      >
+                        Add Age Group
+                      </v-btn>
+                    </template>
                   </v-card>
 
                   <v-card class="ds-card pa-6 mb-6" variant="flat">
@@ -1372,6 +1461,8 @@
                         ><v-select
                           v-model="editedStudy.ASDParticipant"
                           :items="inclusionOptions"
+                          item-title="title"
+                          item-value="value"
                           label="ASD"
                           variant="outlined"
                           density="compact"
@@ -1381,6 +1472,8 @@
                         ><v-select
                           v-model="editedStudy.PrematureParticipant"
                           :items="inclusionOptions"
+                          item-title="title"
+                          item-value="value"
                           label="Premature"
                           variant="outlined"
                           density="compact"
@@ -1390,6 +1483,8 @@
                         ><v-select
                           v-model="editedStudy.IllParticipant"
                           :items="inclusionOptions"
+                          item-title="title"
+                          item-value="value"
                           label="Illness"
                           variant="outlined"
                           density="compact"
@@ -1399,6 +1494,8 @@
                         ><v-select
                           v-model="editedStudy.VisionLossParticipant"
                           :items="inclusionOptions"
+                          item-title="title"
+                          item-value="value"
                           label="Vision Deficit"
                           variant="outlined"
                           density="compact"
@@ -1408,6 +1505,8 @@
                         ><v-select
                           v-model="editedStudy.HearingLossParticipant"
                           :items="inclusionOptions"
+                          item-title="title"
+                          item-value="value"
                           label="Hearing Deficit"
                           variant="outlined"
                           density="compact"
@@ -1764,7 +1863,12 @@ export default {
         totalNperPersonnelAssistExp: [],
         totalCompletedRuns: 0,
       },
-      inclusionOptions: ["Include", "Exclude", "Only"],
+      inclusionOptions: [
+        { title: "Include", value: "Include" },
+        { title: "Exclude", value: "Exclude" },
+        { title: "Only", value: "Only" },
+        { title: "Not Applicable", value: "Not Applicable" },
+      ],
     };
   },
 
@@ -2056,6 +2160,7 @@ export default {
     editStudy() {
       this.editedStudy = {
         ...this.currentStudy,
+        ParticipantType: this.currentStudy.ParticipantType || "Child",
         AgeGroups: (this.currentStudy.AgeGroups || []).map((g) => ({
           MinAge: g.MinAge,
           MaxAge: g.MaxAge,
@@ -2084,6 +2189,7 @@ export default {
       this.editedStudy = {
         FK_Lab: this.store.lab,
         StudyType: "Behavioural",
+        ParticipantType: null,
         Completed: false,
         Description: "",
         PhoneScript: "",
@@ -2123,6 +2229,7 @@ export default {
         ...this.currentStudy,
         id: undefined, // Remove the ID so the backend creates a new record
         StudyName: this.currentStudy.StudyName + " (Copy)",
+        ParticipantType: this.currentStudy.ParticipantType || "Child",
         Completed: false, // Ensure the duplicate starts as "In Progress"
 
         // Strip the internal DB IDs from Age Groups so they are created fresh
@@ -2146,6 +2253,43 @@ export default {
       this.studyStepper = 1;
       this.emailTemplateTab = "phone";
       this.dialog = true;
+    },
+
+    onParticipantTypeChanged(nextType) {
+      if (!nextType) {
+        return;
+      }
+
+      if (!Array.isArray(this.editedStudy.AgeGroups)) {
+        this.editedStudy.AgeGroups = [];
+      }
+
+      if (this.editedStudy.AgeGroups.length === 0) {
+        this.editedStudy.AgeGroups.push({ MinAge: null, MaxAge: null });
+      }
+    },
+
+    adultYearsFromMonths(months) {
+      if (months === null || months === undefined || months === "") return null;
+      const numericMonths = Number(months);
+      if (!Number.isFinite(numericMonths)) return null;
+      return Number((numericMonths / 12).toFixed(2));
+    },
+
+    setAdultAgeBoundary(group, field, yearsInput) {
+      if (!group || !field) return;
+      if (yearsInput === null || yearsInput === undefined || yearsInput === "") {
+        group[field] = null;
+        return;
+      }
+
+      const years = Number(yearsInput);
+      if (!Number.isFinite(years)) {
+        group[field] = null;
+        return;
+      }
+
+      group[field] = Number((years * 12).toFixed(2));
     },
 
     async save() {

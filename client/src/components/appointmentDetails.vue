@@ -11,10 +11,10 @@
         hide-default-footer
         items-per-page="-1"
       >
-        <!-- Child Name -->
+        <!-- Child / Primary Contact Name -->
         <!-- eslint-disable-next-line vue/valid-v-slot -->
         <template #item.Child.Name="{ item }">
-          {{ item.Child?.Name ? item.Child.Name.split(" ")[0] : "Name missing" }}
+          {{ item.Child?.Name ? item.Child.Name.split(" ")[0] : item.Family?.NamePrimary ? item.Family.NamePrimary.split(" ")[0] : "Name missing" }}
         </template>
 
         <!-- study & dropbox -->
@@ -23,7 +23,7 @@
           <v-select 
             variant="outlined" 
             density="compact" 
-            :items="potentialStudies(item.Child, item.FK_Study).potentialStudyList" 
+            :items="potentialStudies(item.Child || primaryContact, item.FK_Study).potentialStudyList" 
             item-value="id"
             item-title="StudyName" 
             v-model="selectedStudies[index]" 
@@ -119,7 +119,36 @@
       <v-col cols="12" class="pb-0">
         <div class="text-caption font-weight-bold text-uppercase text-muted mb-1">Additional appointment(s) for:</div>
       </v-col>
-      <v-col cols="12" md="2" class="centerCol" v-for="(child, index) in Children" :key="child.id">
+      <v-col cols="12" md="2" class="centerCol" v-if="primaryContact">
+        <v-tooltip location="bottom">
+          <template v-slot:activator="{ props }">
+            <div v-bind="props" class="align-self-end">
+              <v-btn 
+                class="text-capitalize" 
+                rounded="pill" 
+                color="primary" 
+                @click="newAppointment(primaryContact)"
+                :disabled="primaryContactSelectableStudies < 1 || parentResponse === 'Rejected' || additionalStudyButtonDisable"
+              >
+                {{ primaryContact.Name ? primaryContact.Name.split(" ")[0] : "Primary" }}
+                <v-icon size="24px" class="ms-2" v-if="primaryContactSelectableStudies < 10">
+                  {{ "mdi-numeric-" + primaryContactSelectableStudies + "-circle-outline" }}
+                </v-icon>
+                <v-icon size="24px" class="ms-2" v-else>
+                  mdi-numeric-9-plus-circle-outline
+                </v-icon>
+              </v-btn>
+            </div>
+          </template>
+          <div class="text-start" v-html="childPopUpInfo(primaryContact)"></div>
+        </v-tooltip>
+      </v-col>
+      <v-col 
+        v-for="(child, index) in Children || []" 
+        :key="child.id" 
+        cols="12" md="2" 
+        class="centerCol"
+      >
         <v-tooltip location="bottom">
           <template v-slot:activator="{ props }">
             <div v-bind="props" class="align-self-end">
@@ -128,11 +157,11 @@
                 rounded="pill" 
                 color="primary" 
                 @click="newAppointment(child)"
-                :disabled="nSelectableStudies[index] < 1 || parentResponse === 'Rejected' || additionalStudyButtonDisable"
+                :disabled="(nSelectableStudies[index] || 0) < 1 || parentResponse === 'Rejected' || additionalStudyButtonDisable"
               >
                 {{ child.Name ? child.Name.split(" ")[0] : "Name is missing" }}
-                <v-icon size="24px" class="ms-2" v-if="nSelectableStudies[index] < 10">
-                  {{ "mdi-numeric-" + nSelectableStudies[index] + "-circle-outline" }}
+                <v-icon size="24px" class="ms-2" v-if="(nSelectableStudies[index] || 0) < 10">
+                  {{ "mdi-numeric-" + (nSelectableStudies[index] || 0) + "-circle-outline" }}
                 </v-icon>
                 <v-icon size="24px" class="ms-2" v-else>
                   mdi-numeric-9-plus-circle-outline
@@ -163,6 +192,7 @@ export default {
   props: {
     Appointments: Array,
     Children: Array,
+    currentFamily: Object,
     targetChild: Object,
     scheduleType: String,
     parentResponse: String,
@@ -177,7 +207,7 @@ export default {
       appointmentDetailReady: false,
       editedAppointments: [],
       apptHeaders: [
-        { title: "Child", align: "center", key: "Child.Name", width: "12%", sortable: false },
+        { title: "Participant", align: "center", key: "Child.Name", width: "12%", sortable: false },
         { title: "Study", align: "center", key: "studyName", width: "18%", sortable: false },
         { title: "Experimenter (E1)", align: "center", key: "experimenter1", sortable: false, width: "20%" },
         { title: "Asst. Experimenter (E2)", align: "center", key: "experimenter2", sortable: false, width: "20%" },
@@ -194,24 +224,28 @@ export default {
     }
   },
   methods: {
-    childAge,
+    isAdultStudy(study) {
+      return study?.ParticipantType === "Adult";
+    },
 
-    potentialStudies(child, bookedStudy) {
-      if (!child) return { potentialStudyList: [], selectableStudies: [] };
-      
+potentialStudies(child, bookedStudy) {
+      if (!child || !child.DoB) return { potentialStudyList: [], selectableStudies: [] };
+
       let eligibleStudies = [];
-
       this.store.studies.forEach((study) => {
-        if (this.studyElegibility(study, child) && !study.Completed) {
+        const isEligible = this.isAdultStudy(study)
+          ? this.primaryContact && this.studyElegibility(study, this.primaryContact)
+          : this.studyElegibility(study, child);
+
+        if (isEligible && !study.Completed) {
           eligibleStudies.push(study.id);
         }
       });
 
       let uniquePreviousStudies = [];
-
       if (child.Appointments) {
         child.Appointments.forEach((appointment) => {
-          uniquePreviousStudies.push(appointment.FK_Study);
+          if (appointment.FK_Study) uniquePreviousStudies.push(appointment.FK_Study);
         });
         uniquePreviousStudies = Array.from(new Set(uniquePreviousStudies));
       }
@@ -222,16 +256,21 @@ export default {
       }
 
       let potentialStudiesIds = eligibleStudies.filter(
-        (study) => !uniquePreviousStudies.includes(study)
+        (studyId) => !uniquePreviousStudies.includes(studyId)
       );
 
       let currentSelectedStudies = [];
       this.editedAppointments.forEach((appointment) => {
-        if (appointment.FK_Child === child.id) { currentSelectedStudies.push(appointment.FK_Study) }
-      })
+        const isSameParticipant = child.id
+          ? appointment.FK_Child === child.id
+          : appointment.FK_Child == null && appointment.FK_Family === child.FK_Family;
+        if (isSameParticipant && appointment.FK_Study) {
+          currentSelectedStudies.push(appointment.FK_Study);
+        }
+      });
 
-      let selectableStudies = potentialStudiesIds.filter(
-        (study) => !currentSelectedStudies.includes(study)
+      const selectableStudies = potentialStudiesIds.filter(
+        (studyId) => !currentSelectedStudies.includes(studyId)
       );
 
       let potentialStudyList = this.store.studies.filter((study) =>
@@ -239,9 +278,22 @@ export default {
       );
 
       return {
-        potentialStudyList: potentialStudyList,
-        selectableStudies: selectableStudies,
+        potentialStudyList,
+        selectableStudies,
       };
+    },
+
+    childPopUpInfo(child) {
+      if (!child) return "";
+      const nPreviousParticipation = child.Appointments ? child.Appointments.length : 0;
+      return '<strong>Age:  </strong>' + this.childAge(child) + "<br><strong>Gender: </strong>" + (child.Sex || 'N/A') + "<br><strong>Participation (N): </strong>" + nPreviousParticipation;
+    },
+
+    updateRecruitableCounts() {
+      this.nSelectableStudies = (this.Children || []).map(child => {
+        return this.potentialStudies(child).selectableStudies.length;
+      });
+      this.$emit("hasRecruitableChildren", this.primaryContactSelectableStudies > 0 || this.nSelectableStudies.some(n => n > 0));
     },
 
     studyElegibility(study, child) {
@@ -291,6 +343,7 @@ export default {
           child.Family?.AutismHistory ? (asd = false) : (asd = true);
           break;
         case "Include":
+        case "Not Applicable":
           asd = true;
           break;
       }
@@ -304,6 +357,7 @@ export default {
           child.HearingLoss ? (hearing = false) : (hearing = true);
           break;
         case "Include":
+        case "Not Applicable":
           hearing = true;
           break;
       }
@@ -317,6 +371,7 @@ export default {
           child.VisionLoss ? (vision = false) : (vision = true);
           break;
         case "Include":
+        case "Not Applicable":
           vision = true;
           break;
       }
@@ -330,6 +385,7 @@ export default {
           child.PrematureBirth ? (premature = false) : (premature = true);
           break;
         case "Include":
+        case "Not Applicable":
           premature = true;
           break;
       }
@@ -343,6 +399,7 @@ export default {
           child.Illness ? (illness = false) : (illness = true);
           break;
         case "Include":
+        case "Not Applicable":
           illness = true;
           break;
       }
@@ -426,7 +483,7 @@ export default {
       this.editedAppointments[index].FK_Study = newVal.id;
       this.readyToCreateSchedule();
 
-      this.nSelectableStudies = this.Children.map(child => {
+      this.nSelectableStudies = (this.Children || []).map(child => {
         return this.potentialStudies(child).selectableStudies.length
       });
     },
@@ -452,7 +509,7 @@ export default {
         FK_Schedule: this.editedAppointments.length > 0 ? (this.editedAppointments[0].FK_Schedule || null) : null,
         FK_Study: null,
         Child: child
-      }
+      };
 
       if (this.scheduleType === 'create' && this.editedAppointments.length > 0) {
         newAppointment.status = this.editedAppointments[0].status;
@@ -608,6 +665,7 @@ export default {
           this.optionsE2[index] = [];
         }
       });
+      this.updateRecruitableCounts();
     },
 
     appointmentDeletable(item, index) {
@@ -639,12 +697,6 @@ export default {
       return attendees;
     },
 
-    childPopUpInfo(child) {
-      if (!child) return "";
-      const nPreviousParticipation = child.Appointments ? child.Appointments.length : 0;
-      return '<strong>Age:  </strong>' + this.childAge(child) + "<br><strong>Gender: </strong>" + (child.Sex || 'N/A') + "<br><strong>Participation (N): </strong>" + nPreviousParticipation;
-    },
-
     resetVariables() {
       this.nSelectableStudies = [];
       this.deletedAppointments = [];
@@ -656,10 +708,29 @@ export default {
       if (this.Appointments) {
         this.assignStudyExperimenters();
       }
+      this.updateRecruitableCounts();
     },
   },
 
   computed: {
+    primaryContact() {
+      if (!this.currentFamily || !this.currentFamily.id || !this.currentFamily.DoBPrimary) return null;
+      return {
+        id: null,
+        FK_Family: this.currentFamily.id,
+        Name: this.currentFamily.NamePrimary || "Primary contact",
+        DoB: this.currentFamily.DoBPrimary,
+        Sex: null,
+        IdWithinFamily: "P",
+        Family: this.currentFamily,
+        Appointments: this.currentFamily.Appointments || [],
+      };
+    },
+
+    primaryContactSelectableStudies() {
+      return this.potentialStudies(this.primaryContact).selectableStudies.length;
+    },
+
     statusOptions() {
       let statusOptions = [];
       switch (this.scheduleType) {
@@ -687,15 +758,22 @@ export default {
         }
       }
     },
+    Children: {
+      deep: true,
+      handler() {
+        this.updateRecruitableCounts();
+      }
+    },
+    currentFamily: {
+      deep: true,
+      handler() {
+        this.updateRecruitableCounts();
+      }
+    },
     editedAppointments: {
       deep: true,
       handler() {
-        if (this.Children) {
-          this.nSelectableStudies = this.Children.map(child => {
-            return this.potentialStudies(child).selectableStudies.length;
-          });
-          this.$emit("hasRecruitableChildren", this.nSelectableStudies.some(n => n > 0));
-        }
+        this.updateRecruitableCounts();
       }
     }
   },

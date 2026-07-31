@@ -8,7 +8,7 @@
             style="position: relative; z-index: 1;">
             <div class="d-flex align-center">
               <v-icon color="primary" class="mr-2">
-                {{ child.Sex === 'M' ? 'mdi-face-man' : (child.Sex === 'F' ? 'mdi-face-woman' : 'mdi-face-recognition')
+                {{ child.Sex === 'M' ? 'mdi-face-man' : (child.Sex === 'F' ? 'mdi-face-woman' : child.Sex === 'I' ? 'mdi-face-outline' :'mdi-face-recognition')
                 }}
               </v-icon>
               <span class="text-h6 font-weight-bold">{{ child.Name ? child.Name.split(' ')[0] : 'Unknown' }}</span>
@@ -119,7 +119,7 @@
                   
                   <!-- Render other fields normally using their specified widths -->
                   <v-col v-else cols="12" sm="6" :md="item.width || 4">
-                    <v-select v-if="item.options && item.field === 'Sex'" v-model="editedItem[item.field]" :items="$Options[item.options]"
+                    <v-select v-if="item.options && (item.field === 'Sex' || item.field === 'Gender')" v-model="editedItem[item.field]" :items="$Options[item.options]"
                       :label="item.label" variant="outlined" density="compact" hide-details class="mb-2"></v-select>
                     <v-combobox v-else-if="item.options" v-model="editedItem[item.field]" :items="$Options[item.options]"
                       :label="item.label" variant="outlined" density="compact" hide-details class="mb-2"></v-combobox>
@@ -233,6 +233,7 @@ export default {
     editedItem: {
       Name: "",
       Sex: "",
+      Gender: "",
       DoB: "",
       Age: "",
       Note: ""
@@ -240,6 +241,7 @@ export default {
     defaultItem: {
       Name: "",
       Sex: "",
+      Gender: "",
       DoB: "",
       Age: "",
       Note: ""
@@ -387,6 +389,7 @@ export default {
           child.Family.AutismHistory ? (asd = false) : (asd = true);
           break;
         case "Include":
+        case "Not Applicable":
           asd = true;
           break;
       }
@@ -400,6 +403,7 @@ export default {
           child.HearingLoss ? (hearing = false) : (hearing = true);
           break;
         case "Include":
+        case "Not Applicable":
           hearing = true;
           break;
       }
@@ -413,6 +417,7 @@ export default {
           child.VisionLoss ? (vision = false) : (vision = true);
           break;
         case "Include":
+        case "Not Applicable":
           vision = true;
           break;
       }
@@ -426,6 +431,7 @@ export default {
           child.PrematureBirth ? (premature = false) : (premature = true);
           break;
         case "Include":
+        case "Not Applicable":
           premature = true;
           break;
       }
@@ -439,6 +445,7 @@ export default {
           child.Illness ? (illness = false) : (illness = true);
           break;
         case "Include":
+        case "Not Applicable":
           illness = true;
           break;
       }

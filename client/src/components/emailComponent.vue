@@ -51,6 +51,7 @@ import family from "@/services/family";
 import moment from "moment";
 import RichTextEditor from "@/components/RichTextEditor.vue";
 import ConfirmDlg from "@/components/ConfirmDialog.vue";
+import { getParticipantContext } from "@/utils/participantContext";
 
 import { useMainStore } from "@/stores/mainStore";
 
@@ -87,11 +88,20 @@ export default {
     };
   },
   methods: {
+    participantContextFor(appointment) {
+      return getParticipantContext({
+        appointment,
+        family: appointment?.Family || this.familyInfo,
+        study: appointment?.Study,
+      });
+    },
+
     childNames() {
       if (!this.appointments || this.appointments.length === 0) return "";
       let nameList = this.appointments.map((appointment) => {
-        if (appointment.Child && appointment.Child.Name) {
-          return appointment.Child.Name.split(" ")[0];
+        const context = this.participantContextFor(appointment);
+        if (context.participantName) {
+          return context.participantName.split(" ")[0];
         }
         return "";
       }).filter(name => name !== "");
@@ -106,6 +116,39 @@ export default {
         childNames = "your " + nameList.length + " children";
       }
       return childNames;
+    },
+
+    pronounsFor(appointment) {
+      const sex = appointment?.Child?.Sex;
+      if (sex === "F") {
+        return { subject: "she", object: "her", possessive: "her" };
+      }
+      if (sex === "M") {
+        return { subject: "he", object: "him", possessive: "his" };
+      }
+      return { subject: "they", object: "them", possessive: "their" };
+    },
+
+    applyParticipantTemplate(body, appointment) {
+      const context = this.participantContextFor(appointment);
+      const pronouns = this.pronounsFor(appointment);
+      const participantName = context.participantName || "";
+
+      let formatted = body || "";
+      formatted = formatted.replace(/\${{childName}}/g, participantName);
+      formatted = formatted.replace(/\${{participantName}}/g, participantName);
+      formatted = formatted.replace(/\${{he\/she}}/g, pronouns.subject);
+      formatted = formatted.replace(/\${{his\/her}}/g, pronouns.possessive);
+      formatted = formatted.replace(/\${{him\/her}}/g, pronouns.object);
+      formatted = formatted.replace(/\. he/g, ". He");
+      formatted = formatted.replace(/\. his/g, ". His");
+      formatted = formatted.replace(/\. she/g, ". She");
+      formatted = formatted.replace(/\. her/g, ". Her");
+      formatted = formatted.replace(/\. they/g, ". They");
+      formatted = formatted.replace(/\. their/g, ". Their");
+      formatted = formatted.replace(/\. them/g, ". Them");
+
+      return formatted;
     },
 
     checkEmail() {
@@ -268,21 +311,7 @@ export default {
         case "ScheduleUpdate":
           this.appointments.forEach((appointment) => {
             let emailBody = appointment.Study.EmailTemplate || "";
-            if (appointment.Child.Sex === "F") {
-              emailBody = emailBody.replace(/\${{he\/she}}/g, "she");
-              emailBody = emailBody.replace(/\${{his\/her}}/g, "her");
-              emailBody = emailBody.replace(/\${{him\/her}}/g, "her");
-            } else {
-              emailBody = emailBody.replace(/\${{he\/she}}/g, "he");
-              emailBody = emailBody.replace(/\${{his\/her}}/g, "his");
-              emailBody = emailBody.replace(/\${{him\/her}}/g, "him");
-            }
-
-            emailBody = emailBody.replace(/\${{childName}}/g, appointment.Child.Name || "");
-            emailBody = emailBody.replace(/\. he/g, ". He");
-            emailBody = emailBody.replace(/\. his/g, ". His");
-            emailBody = emailBody.replace(/\. she/g, ". She");
-            emailBody = emailBody.replace(/\. her/g, ". Her");
+            emailBody = this.applyParticipantTemplate(emailBody, appointment);
 
             if (appointment.PrimaryExperimenter && appointment.PrimaryExperimenter.length > 0 && appointment.PrimaryExperimenter[0].ZoomLink) {
                 emailBody = emailBody.replace(/\${{ZoomLink}}/g, "<a href='" + appointment.PrimaryExperimenter[0].ZoomLink + "'>Zoom Link</a>");
@@ -303,21 +332,7 @@ export default {
             if (appointment.Study.FollowUPEmailSnippet && appointment.Study.FollowUPEmailSnippet !== "") {
               let emailBody = appointment.Study.FollowUPEmailSnippet;
 
-              if (appointment.Child.Sex === "F") {
-                emailBody = emailBody.replace(/\${{he\/she}}/g, "she");
-                emailBody = emailBody.replace(/\${{his\/her}}/g, "her");
-                emailBody = emailBody.replace(/\${{him\/her}}/g, "her");
-              } else {
-                emailBody = emailBody.replace(/\${{he\/she}}/g, "he");
-                emailBody = emailBody.replace(/\${{his\/her}}/g, "his");
-                emailBody = emailBody.replace(/\${{him\/her}}/g, "him");
-              }
-
-              emailBody = emailBody.replace(/\${{childName}}/g, appointment.Child.Name || "");
-              emailBody = emailBody.replace(/\. he/g, ". He");
-              emailBody = emailBody.replace(/\. his/g, ". His");
-              emailBody = emailBody.replace(/\. she/g, ". She");
-              emailBody = emailBody.replace(/\. her/g, ". Her");
+              emailBody = this.applyParticipantTemplate(emailBody, appointment);
 
               emailBodyList.push(emailBody);
             }
@@ -338,8 +353,9 @@ export default {
             });
           } else {
             emailBodyList.forEach((emailBody, index) => {
-              if (index <= 2 && this.appointments[index].Child && this.appointments[index].Child.Name) {
-                  let firstName = this.appointments[index].Child.Name.split(" ")[0];
+              const participantName = this.participantContextFor(this.appointments[index]).participantName;
+              if (index <= 2 && participantName) {
+                  let firstName = participantName.split(" ")[0];
                   emailBodyList[index] = "<p><strong>Here is what " + firstName + " will do:</strong></p>" + emailBodyList[index];
               }
             });
