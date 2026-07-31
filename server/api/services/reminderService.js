@@ -43,8 +43,7 @@ function getExperimenterHasAppointmentsLiteral(labId) {
       SELECT 1 FROM \`Appointment\` \`_a\`
       INNER JOIN \`Schedule\` \`_sc\` ON \`_a\`.\`FK_Schedule\` = \`_sc\`.\`id\`
       INNER JOIN \`Study\` \`_s\` ON \`_a\`.\`FK_Study\` = \`_s\`.\`id\`
-      INNER JOIN \`Child\` \`_c\` ON \`_a\`.\`FK_Child\` = \`_c\`.\`id\`
-      INNER JOIN \`Family\` \`_f\` ON \`_c\`.\`FK_Family\` = \`_f\`.\`id\`
+      INNER JOIN \`Family\` \`_f\` ON \`_a\`.\`FK_Family\` = \`_f\`.\`id\`
       LEFT JOIN \`ExperimenterAssignment\` \`_ea\` ON \`_a\`.\`id\` = \`_ea\`.\`FK_Appointment\`
       LEFT JOIN \`SecondExperimenterAssignment\` \`_sea\` ON \`_a\`.\`id\` = \`_sea\`.\`FK_Appointment\`
       WHERE (\`_ea\`.\`FK_Experimenter\` = \`Personnel\`.\`id\` OR \`_sea\`.\`FK_Experimenter\` = \`Personnel\`.\`id\`)
@@ -353,6 +352,7 @@ async function getFamilyReminderSchedules(labId) {
             required: true,
             attributes: [
               "StudyName",
+              "ParticipantType",
               "EmailTemplate",
               "ReminderTemplate",
               "FollowUPEmailSnippet",
@@ -462,12 +462,12 @@ async function getExperimenterReminderData(labId) {
           { model: model.study, where: studyWhere },
           {
             model: model.child,
-            include: [
-              {
-                model: model.family,
-                where: { TrainingSet: false },
-              },
-            ],
+            required: false,
+            attributes: ["id", "Name", "FK_Family", "IdWithinFamily"],
+          },
+          {
+            model: model.family,
+            where: { TrainingSet: false },
           },
           {
             model: model.personnel,
@@ -509,13 +509,13 @@ async function getExperimenterReminderData(labId) {
           { model: model.study, where: studyWhere },
           {
             model: model.child,
-            include: [
+            required: false,
+            attributes: ["id", "Name", "FK_Family", "IdWithinFamily"],
+          },
               {
                 model: model.family,
                 where: { TrainingSet: false },
               },
-            ],
-          },
           {
             model: model.personnel,
             as: "PrimaryExperimenter",

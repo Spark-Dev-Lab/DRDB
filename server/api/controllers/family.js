@@ -216,6 +216,33 @@ exports.search = asyncHandler(async (req, res) => {
     queryString.CellPhone = { [Op.like]: `${req.query.CellPhone}%` };
   }
 
+  const hasMinAge = req.query.minAge !== undefined && req.query.minAge !== null && req.query.minAge !== "";
+  const hasMaxAge = req.query.maxAge !== undefined && req.query.maxAge !== null && req.query.maxAge !== "";
+
+  if (hasMinAge || hasMaxAge) {
+    const minAgeMonths = Number(req.query.minAge);
+    const maxAgeMonths = Number(req.query.maxAge);
+
+    if (!Number.isFinite(minAgeMonths) || !Number.isFinite(maxAgeMonths)) {
+      return res.status(400).json({ error: "minAge and maxAge must be valid numbers." });
+    }
+
+    if (minAgeMonths < 0 || maxAgeMonths < 0 || maxAgeMonths < minAgeMonths) {
+      return res.status(400).json({ error: "minAge/maxAge range is invalid." });
+    }
+
+    const earliestDob = moment()
+      .subtract(maxAgeMonths * 30.5, "days")
+      .startOf("day")
+      .toDate();
+    const latestDob = moment()
+      .subtract(minAgeMonths * 30.5, "days")
+      .endOf("day")
+      .toDate();
+
+    queryString.DoBPrimary = { [Op.between]: [earliestDob, latestDob] };
+  }
+
   if (req.query.NextContactDate) {
     queryString.NextContactDate = {
       [Op.or]: [
