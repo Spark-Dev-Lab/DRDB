@@ -1,3 +1,26 @@
+## ObCRC Release v1.0.0
+
+This is the first Oberlin-branded release stream. It keeps upstream DRDB provenance while tracking local ObCRC product decisions and shipped changes.
+
+### Based on
+* **Upstream baseline:** DRDB v3.0.3
+* **Attribution:** DRDB was originally developed by Gabriel (Naiqi) Xiao, Ph.D., and colleagues in the BABY Lab at McMaster University.
+
+### ObCRC Changes
+* **Participant terminology alignment:** Updated key UI copy from family-focused wording to household/adult-participant wording where needed.
+* **Intake form rules update:** Household intake now enforces practical minimum required fields (primary contact name plus either email or mailing address).
+* **Progressive secondary contact UX:** Secondary contact fields are now revealed only when needed.
+* **Preferred contact capture:** Added preferred contact method/time fields in intake and surfaced them in scheduling contact display.
+* **Login page polish:** Refined login subtitle and footer attribution layout, including cleaner single-spaced maintenance/version credits.
+
+### Notes
+* **Versioning convention:** ObCRC follows its own semantic version stream (`v1.x.y`) independent of upstream DRDB numbering.
+* **Upstream history retained:** DRDB releases remain below for provenance and upgrade traceability.
+
+---
+
+## Upstream DRDB Releases
+
 ### Release v3.0.3
 
 This release expands customization in Settings for both branding and lab-level scheduling policy. Configuration is stored in system settings and applied consistently across users in the same lab.

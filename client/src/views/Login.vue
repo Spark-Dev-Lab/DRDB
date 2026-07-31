@@ -7,9 +7,14 @@
         <div style="width: 100%; max-width: 400px;" class="px-6">
           
           <div class="text-center mb-8">
-            <img :src="branding.logoUrl" :alt="`${branding.loginHeading} Logo`" height="180" class="mb-4" />
-            <h1 class="text-h4 font-weight-bold mb-2" style="font-family: var(--ds-font-family-heading); color: var(--color-primary);">{{ branding.loginHeading }}</h1>
-            <p class="text-body-1 text-muted">{{ branding.loginSubheading }}</p>
+            <img :src="branding.logoUrl" :alt="`${branding.loginHeading} Logo`" height="180" class="mb-1" />
+            <h1 class="text-h4 font-weight-bold mb-1" style="font-family: var(--ds-font-family-heading); color: var(--color-primary);">
+              {{ loginHeadingPrimary }}
+            </h1>
+            <div class="login-heading-secondary mb-3">{{ loginHeadingSecondary }}</div>
+            <p class="text-body-1 text-muted mb-0 login-subtitle">
+              Shared database platform and community research contact registry supporting participant recruitment, communication, scheduling, and study participation.
+            </p>
           </div>
 
           <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mb-6" border="start" closable>
@@ -69,16 +74,18 @@
             </v-btn>
           </div>
 
-          <div class="text-center mt-8" style="opacity: 0.8;">
-            <p class="text-caption text-muted mb-1" style="font-size: 0.75rem !important;">
-              Developed by Dr. <a href="https://experts.mcmaster.ca/people/xiaon8" target="_blank">Gabriel (Naiqi) Xiao</a>. 
+          <div class="text-center mt-8 login-bottom-credits" style="opacity: 0.8;">
+            <p class="text-caption text-muted login-bottom-provenance">
+              ObCRC is based on the open-source Developmental Research Database (DRDB), originally developed by <a href="https://experts.mcmaster.ca/people/xiaon8" target="_blank">Gabriel (Naiqi) Xiao, Ph.D.</a>, and colleagues in the BABY Lab at McMaster University. The Oberlin implementation has been adapted and substantially extended by Aaron G. Beckner &amp; Oliver Scholz-Perlin.
             </p>
-            <p class="text-caption text-muted mb-1" style="font-size: 0.75rem !important;">
-              Supported by the Canada Foundation for Innovation (CFI), Natural Sciences and Engineering Research Council of Canada (NSERC), Social Sciences and Humanities Research Council (SSHRC), and McMaster University
-            </p>
-            <p class="text-caption text-muted" style="font-size: 0.75rem !important;">
-              Version 3.0.3
-            </p>
+            <div class="login-bottom-maintenance-block">
+              <p class="text-caption text-muted login-bottom-maintained-by">
+                Maintained by the Oberlin College SPARK Lab
+              </p>
+              <p class="text-caption text-muted login-bottom-name">Aaron G. Beckner</p>
+              <p class="text-caption text-muted login-bottom-role">Principal Investigator &amp; Database Administrator</p>
+            </div>
+            <p class="text-caption text-muted login-bottom-version">ObCRC v1.0.0</p>
           </div>
         </div>
       </v-col>
@@ -348,6 +355,17 @@ export default {
   },
   computed: {
     passwordConfirmationRule() { return this.newPassword === this.newPasswordVerify || "Password must match"; },
+    loginHeadingPrimary() {
+      const heading = this.branding?.loginHeading || "ObCRC";
+      const match = heading.match(/^(.*?)\s*\((.*?)\)\s*$/);
+      return match ? match[1].trim() : heading;
+    },
+    loginHeadingSecondary() {
+      const heading = this.branding?.loginHeading || "";
+      const match = heading.match(/^(.*?)\s*\((.*?)\)\s*$/);
+      if (match) return match[2].trim();
+      return "Oberlin Community Research Registry";
+    },
   },
   watch: { dialog(val) { val || this.close(); } }
 };
@@ -380,5 +398,56 @@ export default {
 }
 .release-notes-container :deep(li) {
   margin-bottom: 4px;
+}
+
+.login-subtitle {
+  max-width: 318px;
+  margin: 0 auto;
+}
+
+.login-heading-secondary {
+  color: #334155;
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.login-bottom-credits {
+  font-size: 0.73rem;
+}
+
+.login-bottom-provenance {
+  max-width: 332px;
+  margin: 0 auto;
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+
+.login-bottom-maintenance-block {
+  max-width: 332px;
+  margin: 0 auto;
+  line-height: 1.05;
+}
+
+.login-bottom-maintained-by {
+  margin: 0;
+  font-weight: 500;
+}
+
+.login-bottom-name {
+  margin: 0;
+}
+
+.login-bottom-role {
+  margin: 0;
+}
+
+.login-bottom-version {
+  margin: 0;
+}
+
+.login-bottom-maintenance-block .text-caption,
+.login-bottom-version {
+  line-height: 1.05 !important;
 }
 </style>
