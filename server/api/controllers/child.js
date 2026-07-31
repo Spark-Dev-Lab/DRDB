@@ -303,6 +303,8 @@ exports.batchCreate = asyncHandler(async (req, res) => {
 // Retrieve all children from the database.
 exports.search = asyncHandler(async (req, res) => {
   var queryString = {};
+  const isSlim = req.query.slim === 'true';
+  const pagination = isSlim ? parsePagination(req.query) : {};
 
   if (req.query.trainingMode === "true") {
     queryString["$Family.TrainingSet$"] = true;
@@ -351,7 +353,7 @@ exports.search = asyncHandler(async (req, res) => {
     return res.status(400).json({ error: "minAge and maxAge are required when searching by study." });
   }
 
-  if (req.query.minAge && req.query.maxAge) {
+  if (!isSlim && req.query.minAge && req.query.maxAge) {
     queryString.Age = {
       [Op.between]: [req.query.minAge * 30.5 - 1, req.query.maxAge * 30.5 - 1],
     };
@@ -397,15 +399,14 @@ exports.search = asyncHandler(async (req, res) => {
       ],
     });
 
-    const pastParticipants = studyInfo.Appointments.map((appointment) => {
-      return appointment.FK_Child;
-    });
+    const pastParticipants = (studyInfo?.Appointments || [])
+      .map((appointment) => Number(appointment.FK_Child))
+      .filter((childId) => Number.isInteger(childId) && childId > 0);
 
-    queryString.id = { [Op.notIn]: pastParticipants };
+    if (pastParticipants.length > 0) {
+      queryString.id = { [Op.notIn]: pastParticipants };
+    }
   }
-
-  const isSlim = req.query.slim === 'true';
-  const pagination = isSlim ? parsePagination(req.query) : {};
 
   if (isSlim) {
     const eligibility = {

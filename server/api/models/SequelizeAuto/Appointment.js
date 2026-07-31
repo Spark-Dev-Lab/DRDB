@@ -20,7 +20,7 @@ module.exports = function(sequelize, DataTypes) {
 		},
 		FK_Child: {
 			type: DataTypes.INTEGER,
-			allowNull: false,
+			allowNull: true,
 			references: {
 				model: {
 					tableName: 'Child',

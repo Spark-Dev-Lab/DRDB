@@ -22,7 +22,7 @@ export default {
                 width: "3",
                 searchable: true,
             },
-            { label: "Family ID", field: "id", width: "2", searchable: true },
+            { label: "Household ID", field: "id", width: "2", searchable: true },
             {
                 label: "Primary Caregiver",
                 field: "NamePrimary",
@@ -140,6 +140,12 @@ export default {
                 field: "Sex",
                 options: "sex",
                 width: "2",
+            },
+            {
+                label: "Gender Identity",
+                field: "Gender",
+                options: "genderIdentity",
+                width: "4",
             },
             {
                 label: "Gestational age (weeks)",
@@ -444,7 +450,7 @@ export default {
             },
         ];
 
-        app.config.globalProperties.$sex = ["F", "M"];
+        app.config.globalProperties.$sex = ["F", "M", "I"];
 
         app.config.globalProperties.$Options = {
             autism: [{
@@ -460,7 +466,20 @@ export default {
                 value: null
             }
             ],
-            sex: ["F", "M"],
+            sex: [
+                { title: "Female", value: "F" },
+                { title: "Male", value: "M" },
+                { title: "Intersex", value: "I" },
+            ],
+            genderIdentity: [
+                { title: "Female", value: "Female" },
+                { title: "Male", value: "Male" },
+                { title: "Non-Binary", value: "Non-Binary" },
+                { title: "Gender Fluid", value: "Gender Fluid" },
+                { title: "Transgender", value: "Transgender" },
+                { title: "Prefer Not to Say", value: "Prefer Not to Say" },
+                { title: "Not Applicable", value: "Not Applicable" },
+            ],
             language: ["English", "French", "Chinese", "Spanish", "Hindi"],
             race: ["Indian", "Asian", "African", "Hispanic", "Caucasian", "Arabic"],
             recruitmentMethod: [
@@ -468,9 +487,9 @@ export default {
                 "Events",
                 "SocialMedia",
                 "PreviousParticipation",
-                "MUMC hospital",
+                "OberlinKids","Other",
             ],
-            studyType: ["Behavioural", "EEG/ERP", "EyeTracking", "fNIRS", "Online"],
+            studyType: ["Behavioural", "EEG/ERP", "HeadMountedEyeTracking", "ScreenEyeTracking", "Online Asynchronous", "Online Synchronous"],
             fullRoles: [
                 "PostDoc",
                 "PI",

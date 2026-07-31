@@ -88,7 +88,7 @@
               chips
             ></v-select>
           </v-col>
-          <v-col cols="12" md="3">
+          <v-col cols="12" md="2">
             <v-select 
               @update:model-value="getSearchKeys('Status', $event)" 
               v-model="queryString.Status"
@@ -104,7 +104,24 @@
               chips
             ></v-select>
           </v-col>
-          <v-col cols="12" md="3">
+          <v-col cols="12" md="2">
+            <v-select
+              @update:model-value="getSearchKeys('ParticipantType', $event)"
+              v-model="queryString.ParticipantType"
+              @keydown.enter="searchSchedule"
+              :items="studyTypeFilters"
+              item-value="value"
+              item-title="label"
+              label="Study Type"
+              append-inner-icon="mdi-account-filter"
+              bg-color="textbackground"
+              hide-details
+              variant="outlined"
+              density="compact"
+              clearable
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="2">
             <v-menu v-model="dateMenuAfter" :close-on-content-click="false" location="bottom start">
               <template v-slot:activator="{ props: menuProps }">
                 <v-text-field
@@ -326,6 +343,7 @@ export default {
         NameSecondary: null,
         Status: [],
         StudyName: [],
+        ParticipantType: null,
         AppointmentTimeBefore: null,
         AppointmentTimeAfter: null,
       },
@@ -337,6 +355,7 @@ export default {
         NameSecondary: null,
         Status: [],
         StudyName: [],
+        ParticipantType: null,
         AppointmentTimeBefore: null,
         AppointmentTimeAfter: null,
       },
@@ -352,11 +371,11 @@ export default {
       scheduleResultsMode: null,
       lastScheduleQuery: null,
       searchingFields: [
-        { label: "Family ID", field: "FamilyId", width: 2 },
+        { label: "Household ID", field: "FamilyId", width: 2 },
         { label: "Email", field: "Email", width: 3 },
         { label: "Phone", field: "Phone", width: 3 },
-        { label: "Primary Caregiver", field: "NamePrimary", width: 2 },
-        { label: "Secondary Caregiver", field: "NameSecondary", width: 2 },
+        { label: "Primary Contact", field: "NamePrimary", width: 2 },
+        { label: "Secondary Contact", field: "NameSecondary", width: 2 },
       ],
       Status: [
         "Confirmed",
@@ -366,6 +385,10 @@ export default {
         "No Show",
         "Cancelled",
         "Rejected",
+      ],
+      studyTypeFilters: [
+        { label: "Adult Study", value: "Adult" },
+        { label: "Child Study", value: "Child" },
       ],
       index: -1,
     };
@@ -616,7 +639,7 @@ export default {
       return !(
         q.Email || q.AppointmentTimeAfter || q.AppointmentTimeBefore ||
         q.Status.length > 0 || q.StudyName.length > 0 || q.Phone ||
-        q.NamePrimary || q.NameSecondary || q.FamilyId
+        q.NamePrimary || q.NameSecondary || q.FamilyId || q.ParticipantType
       );
     },
   },

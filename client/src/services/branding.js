@@ -148,6 +148,14 @@ export function applyBrandingToDocument(brandingConfig = {}) {
   upsertFaviconLink("shortcut icon", faviconHref, faviconType);
   upsertFaviconLink("apple-touch-icon", faviconHref, faviconType);
 
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+    window.dispatchEvent(
+      new CustomEvent("drdb:branding-updated", {
+        detail: branding,
+      })
+    );
+  }
+
   return branding;
 }
 

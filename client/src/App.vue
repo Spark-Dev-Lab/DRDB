@@ -16,7 +16,7 @@
 
       <template v-if="store.user != null">
         <span class="title-text text-subtitle-1 font-weight-medium mr-4">
-          {{ store.labName + ": " + store.name + " (" + store.role + ")" }}
+          {{ headerLabLabel + ": " + store.name + " (" + store.role + ")" }}
         </span>
         <v-tooltip location="bottom">
           <template v-slot:activator="{ props }">
@@ -118,7 +118,7 @@
           {{ store.name }}
         </div>
         <div class="text-body-2 mb-3" style="color: primary">
-          {{ store.labName }}
+          {{ headerLabLabel }}
         </div>
       </div>
 
@@ -213,6 +213,7 @@ export default {
     return {
       drawer: false,
       feedbackDialog: false,
+      activeBranding: null,
       currentFeedback: {
         Title: "",
         Content: "",
@@ -221,7 +222,7 @@ export default {
       },
       navs: [
         { address: "/home", label: "Home", icon: "mdi-home" },
-        { address: "/family", label: "Family information", icon: "mdi-face-man" },
+        { address: "/family", label: "Household information", icon: "mdi-face-man" },
         { address: "/schedule", label: "Schedule studies", icon: "mdi-phone" },
         {
           address: "/appointment",
@@ -237,6 +238,17 @@ export default {
   },
 
   methods: {
+    onBrandingUpdated(event) {
+      if (event?.detail) {
+        this.activeBranding = event.detail;
+      }
+    },
+
+    async refreshBrandingForHeader(labId = this.store.lab) {
+      const branding = await brandingService.loadPublicBranding(labId);
+      this.activeBranding = brandingService.applyBrandingToDocument(branding);
+    },
+
     logout() {
       console.log("log out complete!");
       this.store.clearAll();
@@ -278,7 +290,7 @@ export default {
       // Map addresses to their page names
       const addressToPageName = {
         "/home": "Home",
-        "/family": "Family information",
+        "/family": "Household information",
         "/schedule": "Schedule studies",
         "/appointment": "Study appointments",
         "/study": "Study management",
@@ -289,7 +301,7 @@ export default {
       const pageName = addressToPageName[navAddress];
 
       switch (pageName) {
-        case "Family information":
+        case "Household information":
           return "#BFDBFE"; // Richer blue
         case "Schedule studies":
           return "#FDE68A"; // Richer amber
@@ -310,7 +322,7 @@ export default {
       // Return a slightly darker/saturated version for borders and icons
       const addressToPageName = {
         "/home": "Home",
-        "/family": "Family information",
+        "/family": "Household information",
         "/schedule": "Schedule studies",
         "/appointment": "Study appointments",
         "/study": "Study management",
@@ -321,7 +333,7 @@ export default {
       const pageName = addressToPageName[navAddress];
 
       switch (pageName) {
-        case "Family information":
+        case "Household information":
           return "#3B82F6"; // Blue
         case "Schedule studies":
           return "#F59E0B"; // Amber
@@ -340,9 +352,19 @@ export default {
   },
 
   computed: {
+    headerLabLabel() {
+      if (this.activeBranding?.loginHeading) {
+        return this.activeBranding.loginHeading;
+      }
+      if (this.activeBranding?.appTitle) {
+        return this.activeBranding.appTitle;
+      }
+      return this.store.labName || "DRDB";
+    },
+
     pageBackgroundColor() {
       switch (this.$route.name) {
-        case "Family information":
+        case "Household information":
           return "#F0F9FF"; // Very pale blue
         case "Schedule studies":
           return "#FFFBEB"; // Very pale amber
@@ -363,6 +385,12 @@ export default {
   },
 
   watch: {
+    'store.lab': {
+      async handler(newLab) {
+        await this.refreshBrandingForHeader(newLab);
+      }
+    },
+
     feedbackDialog(val) {
       val || this.closeFeedback();
     },
@@ -404,11 +432,11 @@ export default {
       }
     }
 
-    const branding = await brandingService.loadPublicBranding(this.store.lab);
-    brandingService.applyBrandingToDocument(branding);
+    await this.refreshBrandingForHeader(this.store.lab);
 
     try {
       await login.check_login();
+      await this.refreshBrandingForHeader(this.store.lab);
     } catch (error) {
       if (error.response && error.response.status === 401) {
         this.store.clearAll();
@@ -418,6 +446,14 @@ export default {
         }
       }
     }
+  },
+
+  mounted() {
+    window.addEventListener("drdb:branding-updated", this.onBrandingUpdated);
+  },
+
+  beforeUnmount() {
+    window.removeEventListener("drdb:branding-updated", this.onBrandingUpdated);
   },
 };
 </script>

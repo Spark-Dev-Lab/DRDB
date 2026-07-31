@@ -37,7 +37,7 @@
                         ref="dateTimePickerComp" 
                         :dateTimePickerDisable="dateTimePickerDisable"
                         :appointmentTime="currentSchedule?.AppointmentTime"
-                        @readyToCreateSchedule="readyToCreateSchedule" 
+                        @readyToCreateSchedule="onDateTimeReady" 
                       />
                     </div>
                   </v-expand-transition>
@@ -57,13 +57,14 @@
                         ref="appointmentDetailsRef" 
                         :Appointments="currentSchedule?.Appointments"
                         :Children="currentFamily?.Children" 
+                        :currentFamily="currentFamily"
                         :scheduleType="scheduleType"
                         :parentResponse="parentResponse"
-                        :showAdditionalAppointments="scheduleEnable && hasRecruitableChildrenFlag"
+                        :showAdditionalAppointments="hasRecruitableChildrenFlag"
                         @dateTimePickerDisableUpdate="dateTimePickerDisableUpdate"
                         @newAppointment="addAppointment" 
                         @deleteCurrentAppointment="deleteCurrentAppointment"
-                        @readyToCreateSchedule="readyToCreateSchedule"
+                        @readyToCreateSchedule="onAppointmentReady"
                         @hasRecruitableChildren="hasRecruitableChildrenFlag = $event"
                       />
                     </div>
@@ -431,6 +432,8 @@ export default {
     hasRecruitableChildrenFlag: false,
     step3Section1Open: true,
     step3Section2Open: true,
+    appointmentReadyState: null,
+    dateTimeReadyState: null,
   }),
   methods: {
     addLog(action, success, message) {
@@ -457,9 +460,47 @@ export default {
     addAppointment(app) { 
       this.$emit("newAppointment", app);
     },
+    onAppointmentReady(isReady) {
+      this.appointmentReadyState = isReady === true;
+      this.readyToCreateSchedule();
+    },
+    onDateTimeReady(isReady) {
+      this.dateTimeReadyState = isReady === true;
+      this.readyToCreateSchedule();
+    },
     readyToCreateSchedule() {
-      const appointmentReady = this.$refs.appointmentDetailsRef?.appointmentDetailReady;
-      const dateTimeReady = this.$refs.dateTimePickerComp?.studyDateTimeReady;
+      const appointmentRef = this.$refs.appointmentDetailsRef;
+      const dateTimeRef = this.$refs.dateTimePickerComp;
+
+      let appointmentReady = false;
+      if (appointmentRef) {
+        const appointments = appointmentRef.editedAppointments || [];
+        const hasRows = appointments.length > 0;
+        const hasStudy = appointmentRef.checkAppointmentsAssignedStudy
+          ? appointmentRef.checkAppointmentsAssignedStudy()
+          : false;
+        const hasStatus = appointmentRef.checkAppointmentsAssignedStatus
+          ? appointmentRef.checkAppointmentsAssignedStatus()
+          : false;
+        const hasE1 = appointmentRef.checkAppointmentsAssignedExperimenter
+          ? appointmentRef.checkAppointmentsAssignedExperimenter()
+          : false;
+
+        if (this.scheduleType === 'create') {
+          const effectiveResponse = this.parentResponse || appointments[0]?.status || 'Confirmed';
+          const needsExperimenter = effectiveResponse === 'Confirmed';
+          appointmentReady = hasRows && hasStudy && (!needsExperimenter || hasE1);
+        } else {
+          const needsExperimenter = appointments.some((appointment) => {
+            const status = appointment?.status;
+            return status === 'Confirmed' || status === 'Update appointment time';
+          });
+
+          appointmentReady = hasRows && hasStudy && hasStatus && (!needsExperimenter || hasE1);
+        }
+      }
+
+      const dateTimeReady = this.dateTimeReadyState ?? (dateTimeRef?.studyDateTimeReady === true);
       // When the date picker is disabled (Cancel, No Show, Reschedule), date/time is not required
       const dateTimeOk = dateTimeReady || this.dateTimePickerDisable;
 
@@ -483,6 +524,7 @@ export default {
       }
 
       this.loadingStatus = true;
+      let persistedSchedule = false;
       try {
         const newAppointments = this.$refs.appointmentDetailsRef.generateAppointments();
         this.studyDateTime = this.$refs.dateTimePickerComp.studyDateTime();
@@ -494,6 +536,7 @@ export default {
           try {
             newSchedule = await this.newSchedule(newAppointments.newAppointments);
             this.createdScheduleInSession = newSchedule;
+            persistedSchedule = true;
             this.scheduleButtonText = "Update Schedule Event";
             this.addLog("Create Calendar Event", true, "Successfully created calendar event.");
             this.$emit("newSchedule", newSchedule);
@@ -507,6 +550,7 @@ export default {
           try {
             // Normal update path (parent schedule update)
             updatedSchedule = await this.updateSchedule(newAppointments.updatedAppointments, this.currentSchedule);
+            persistedSchedule = true;
             this.scheduleButtonText = "Appointment updated!";
             this.addLog("Update Calendar Event", true, "Successfully updated calendar event.");
             this.$emit("updatedSchedule", updatedSchedule);
@@ -584,7 +628,11 @@ export default {
           }
         }
 
-        this.disableStep12 = false;
+        if (persistedSchedule) {
+          this.disableStep12 = false;
+          // Move users directly into the email workflow after a successful save.
+          this.step12();
+        }
       } finally {
         this.loadingStatus = false;
       }
@@ -827,7 +875,9 @@ export default {
 
     calendarSummary(Appointments) {
       let studyNames = Appointments.map((app) => {
-        return app.Study.StudyName + "(" + app.Child.FK_Family + app.Child.IdWithinFamily + ")";
+        const familyId = app?.Child?.FK_Family ?? app?.FK_Family ?? app?.Family?.id ?? "?";
+        const participantId = app?.Child?.IdWithinFamily ?? "P";
+        return app.Study.StudyName + "(" + familyId + participantId + ")";
       });
       studyNames = Array.from(new Set(studyNames));
       return studyNames.join(" + ");
@@ -904,6 +954,8 @@ export default {
       this.hasRecruitableChildrenFlag = false;
       this.step3Section1Open = true;
       this.step3Section2Open = true;
+      this.appointmentReadyState = null;
+      this.dateTimeReadyState = null;
     },
 
     initiateVariables(dialogType) {
@@ -1132,6 +1184,10 @@ export default {
           }
         }
         // For the update path, initiateVariables already handles dateTimePickerDisable
+
+        this.$nextTick(() => {
+          this.readyToCreateSchedule();
+        });
       }
     },
   },
@@ -1151,6 +1207,10 @@ export default {
           this.scheduleEnable = true;
           break;
       }
+
+      this.$nextTick(() => {
+        this.readyToCreateSchedule();
+      });
     }
   }
 }

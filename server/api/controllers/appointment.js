@@ -3,6 +3,22 @@ const { Op } = require("sequelize");
 const { QueryTypes } = require("sequelize");
 const asyncHandler = require("express-async-handler");
 const { google } = require("googleapis");
+const { getParticipantContext } = require("../utils/participantContext");
+const scheduleService = require("../services/scheduleService");
+
+function getParticipantLabelForSummary(appointment) {
+  const studyName = appointment && appointment.Study && appointment.Study.StudyName ? appointment.Study.StudyName : "Study";
+  const context = getParticipantContext({ appointment });
+  const familyId = appointment?.FK_Family || context.primaryContact?.id || context.participant?.id;
+
+  if (context.participantType === "Child" && appointment?.Child?.IdWithinFamily && familyId) {
+    return `${studyName} (${familyId}${appointment.Child.IdWithinFamily})`;
+  }
+  if (familyId) {
+    return `${studyName} (${familyId})`;
+  }
+  return studyName;
+}
 
 const config = require("../../config/general");
 
@@ -40,6 +56,8 @@ exports.create = asyncHandler(async (req, res) => {
   // console.log(newAppointmentInfo);
 
   try {
+    await scheduleService.validateAppointmentsForPersistence(newAppointmentInfo);
+
     const appointments = await model.appointment.bulkCreate(newAppointmentInfo);
 
     // update experimenter assignment
@@ -102,13 +120,7 @@ exports.create = asyncHandler(async (req, res) => {
     });
 
     var studyNames = Schedule.Appointments.map((appointment) => {
-      return (
-        appointment.Study.StudyName +
-        " (" +
-        appointment.FK_Family +
-        appointment.Child.IdWithinFamily +
-        ")"
-      );
+      return getParticipantLabelForSummary(appointment);
     });
 
     studyNames = Array.from(new Set(studyNames));
@@ -195,7 +207,11 @@ exports.create = asyncHandler(async (req, res) => {
 
     res.status(200).send(Schedule);
   } catch (error) {
-    res.status(500).send(error);
+    res.status(error.status || 500).json({
+      error: {
+        message: error.message,
+      },
+    });
   }
 });
 
@@ -329,13 +345,7 @@ exports.update = asyncHandler(async (req, res) => {
     });
 
     var studyNames = Schedule.Appointments.map((appointment) => {
-      return (
-        appointment.Study.StudyName +
-        " (" +
-        appointment.FK_Family +
-        appointment.Child.IdWithinFamily +
-        ")"
-      );
+      return getParticipantLabelForSummary(appointment);
     });
 
     studyNames = Array.from(new Set(studyNames));
