@@ -12,7 +12,19 @@ module.exports = function(sequelize, DataTypes) {
 			type: DataTypes.STRING(50),
 			allowNull: true
 		},
+		PrimaryGenderIdentity: {
+			type: DataTypes.STRING(50),
+			allowNull: true
+		},
+		DoBPrimary: {
+			type: DataTypes.DATEONLY,
+			allowNull: true
+		},
 		NameSecondary: {
+			type: DataTypes.STRING(50),
+			allowNull: true
+		},
+		SecondaryGenderIdentity: {
 			type: DataTypes.STRING(50),
 			allowNull: true
 		},

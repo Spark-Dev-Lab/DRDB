@@ -1,5 +1,7 @@
 /* jshint indent: 1 */
 
+const ParticipantTypes = require("../../utils/participantTypes");
+
 module.exports = function (sequelize, DataTypes) {
 	return sequelize.define('Study', {
 		id: {
@@ -63,28 +65,36 @@ module.exports = function (sequelize, DataTypes) {
 			type: DataTypes.STRING(30),
 			allowNull: false
 		},
+		ParticipantType: {
+			type: DataTypes.ENUM(
+				ParticipantTypes.CHILD,
+				ParticipantTypes.ADULT
+			),
+			allowNull: false,
+			defaultValue: ParticipantTypes.CHILD
+		},
 		ASDParticipant: {
-			type: DataTypes.ENUM('Include', 'Exclude', 'Only'),
+			type: DataTypes.ENUM('Include', 'Exclude', 'Only', 'Not Applicable'),
 			allowNull: false,
 			defaultValue: "Include"
 		},
 		PrematureParticipant: {
-			type: DataTypes.ENUM('Include', 'Exclude', 'Only'),
+			type: DataTypes.ENUM('Include', 'Exclude', 'Only', 'Not Applicable'),
 			allowNull: false,
 			defaultValue: "Include"
 		},
 		VisionLossParticipant: {
-			type: DataTypes.ENUM('Include', 'Exclude', 'Only'),
+			type: DataTypes.ENUM('Include', 'Exclude', 'Only', 'Not Applicable'),
 			allowNull: false,
 			defaultValue: "Include"
 		},
 		HearingLossParticipant: {
-			type: DataTypes.ENUM('Include', 'Exclude', 'Only'),
+			type: DataTypes.ENUM('Include', 'Exclude', 'Only', 'Not Applicable'),
 			allowNull: false,
 			defaultValue: "Include"
 		},
 		IllParticipant: {
-			type: DataTypes.ENUM('Include', 'Exclude', 'Only'),
+			type: DataTypes.ENUM('Include', 'Exclude', 'Only', 'Not Applicable'),
 			allowNull: false,
 			defaultValue: "Include"
 		},
