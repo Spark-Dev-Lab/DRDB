@@ -131,7 +131,7 @@
                 <v-btn color="error" variant="outlined" size="small" prepend-icon="mdi-delete" width="130"
                   v-if="['Admin', 'Lab manager'].includes(store.role)"
                   @click.stop="deleteFamilyDialog = true" :disabled="!currentFamily.id">
-                  Delete Family
+                  Delete Household
                 </v-btn>
                 <v-btn color="primary" variant="outlined" size="small" prepend-icon="mdi-pencil" width="130"
                   @click.stop="editFamilyAndChild" :disabled="!currentChild.id">
@@ -170,6 +170,22 @@
               </v-list-item>
               <v-list-item prepend-icon="mdi-map-marker-outline" class="px-0" density="compact"
                 :title="currentFamily.Address || 'No address provided'">
+              </v-list-item>
+              <v-list-item prepend-icon="mdi-message-text-outline" class="px-0" density="compact">
+                <v-list-item-title>
+                  <span v-if="preferredContactMethodsDisplay">
+                    Preferred method: {{ preferredContactMethodsDisplay }}
+                  </span>
+                  <span v-else class="text-muted">No preferred contact method provided</span>
+                </v-list-item-title>
+              </v-list-item>
+              <v-list-item prepend-icon="mdi-clock-outline" class="px-0" density="compact">
+                <v-list-item-title>
+                  <span v-if="preferredContactTimeDisplay">
+                    Preferred time: {{ preferredContactTimeDisplay }}
+                  </span>
+                  <span v-else class="text-muted">No preferred contact time provided</span>
+                </v-list-item-title>
               </v-list-item>
             </v-list>
 
@@ -609,11 +625,11 @@
       </v-card>
     </v-dialog>
 
-    <!-- Delete Family Dialog -->
+    <!-- Delete Household Dialog -->
     <v-dialog v-model="deleteFamilyDialog" max-width="500px">
       <v-card class="ds-card" variant="flat">
         <v-card-title class="text-h6 font-weight-bold bg-error text-white py-3">
-          Delete Family?
+          Delete Household?
         </v-card-title>
         <v-card-text class="pt-6 pb-2">
           Are you sure you want to delete this family? This action will remove the family, associated children, and appointments completely. This action cannot be undone.
@@ -886,6 +902,28 @@ export default {
         return childIds.size;
       }
       return 0;
+    },
+
+    preferredContactMethodsDisplay() {
+      const raw = this.currentFamily?.PreferredContactMethods;
+      if (!raw) return "";
+      if (Array.isArray(raw)) {
+        return raw.filter(Boolean).join(", ");
+      }
+      if (typeof raw === "string") {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed.filter(Boolean).join(", ");
+        } catch (error) {
+          // Keep plain string values as-is when not JSON.
+        }
+        return raw;
+      }
+      return "";
+    },
+
+    preferredContactTimeDisplay() {
+      return this.currentFamily?.PreferredContactTime || "";
     },
   },
 
@@ -1280,7 +1318,7 @@ export default {
         }
       } catch (error) {
         console.error("Family delete error:", error);
-        alert("Failed to delete family.");
+        alert("Failed to delete household.");
       } finally {
         this.isDeletingFamily = false;
       }

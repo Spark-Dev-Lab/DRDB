@@ -537,112 +537,271 @@
 
           <v-card-text class="pt-6 pb-2" style="max-height: 70vh">
             <v-form ref="form" v-model="valid" lazy-validation>
-              <div class="mb-6">
-                <div
-                  class="text-caption font-weight-bold text-uppercase text-muted mb-3 px-1"
-                >
-                  Household Information
-                </div>
-                <v-row dense>
-                  <v-col
-                    cols="12"
-                    :sm="item.width === '12' ? 12 : 6"
-                    :md="item.width"
-                    v-for="item in familyBasicInfo"
-                    :key="item.label"
-                  >
-                    <div v-if="item.options">
-                      <v-combobox
-                        v-if="item.field !== 'AutismHistory' && item.field !== 'PrimaryGenderIdentity' && item.field !== 'SecondaryGenderIdentity'"
-                        class="textfield-family mb-2"
-                        v-model="editedItem[item.field]"
-                        :items="Options[item.options]"
-                        variant="outlined"
-                        :label="item.label"
-                        density="compact"
-                        hide-details
-                      ></v-combobox>
-                      <v-select
-                        v-else
-                        class="textfield-family mb-2"
-                        v-model="editedItem[item.field]"
-                        :items="Options[item.options]"
-                        variant="outlined"
-                        :label="item.label"
-                        density="compact"
-                        hide-details
-                        item-title="title"
-                        item-value="value"
-                      ></v-select>
-                    </div>
-                    <div v-else>
-                      <template v-if="item.field === 'DoBPrimary'">
-                        <v-menu v-model="dobMenuPrimary" :close-on-content-click="false" location="bottom start">
-                          <template v-slot:activator="{ props: menuProps }">
-                            <v-text-field
-                              v-model="editedItem.DoBPrimary"
-                              :label="item.label"
-                              :rules="$rules.dob"
-                              variant="outlined"
-                              density="compact"
-                              hide-details="auto"
-                              class="mb-2"
-                              placeholder="YYYY-MM-DD"
-                            >
-                              <template v-slot:append-inner>
-                                <v-icon v-bind="menuProps" style="cursor:pointer">mdi-calendar</v-icon>
-                              </template>
-                            </v-text-field>
-                          </template>
-                          <v-date-picker
-                            v-model="dobPickerPrimaryDate"
-                            @update:model-value="onDobPrimaryPickerEdit"
-                            hide-header
-                            show-adjacent-months
-                          ></v-date-picker>
-                        </v-menu>
-                      </template>
-                      <template v-else>
-                        <v-text-field
-                          class="textfield-family mb-2"
-                          :label="item.label"
-                          v-model="editedItem[item.field]"
-                          :rules="item.rules ? $rules[item.rules] : []"
-                          variant="outlined"
-                          hide-details="auto"
-                          density="compact"
-                        ></v-text-field>
-                      </template>
-                    </div>
-                  </v-col>
-                </v-row>
-              </div>
+              <v-alert type="info" variant="tonal" density="compact" class="mb-4" border="start">
+                The primary contact is the individual who completed the Prospective Participant Sign Up Form.
+              </v-alert>
 
-              <div class="mb-4">
-                <div
-                  class="text-caption font-weight-bold text-uppercase text-muted mb-3 px-1"
-                >
-                  Contact Information
+              <div class="mb-6">
+                <div class="d-flex align-center mb-2 px-1" style="gap: 8px">
+                  <div class="text-caption font-weight-bold text-uppercase text-muted">Primary Contact</div>
+                  <v-chip size="x-small" color="primary" variant="tonal">Required fields marked *</v-chip>
                 </div>
                 <v-row dense>
-                  <v-col
-                    cols="12"
-                    :sm="item.width === '12' ? 12 : 6"
-                    :md="item.width"
-                    v-for="item in familyContactInfo"
-                    :key="item.label"
-                  >
+                  <v-col cols="12" md="6">
                     <v-text-field
                       class="textfield-family mb-2"
-                      :label="item.label"
-                      v-model="editedItem[item.field]"
-                      :rules="item.rules ? $rules[item.rules] : []"
+                      label="Primary Contact Name *"
+                      v-model="editedItem.NamePrimary"
+                      :rules="[...$rules.required, ...$rules.name]"
                       variant="outlined"
                       hide-details="auto"
                       density="compact"
                     ></v-text-field>
                   </v-col>
+                  <v-col cols="12" md="6">
+                    <v-menu v-model="dobMenuPrimary" :close-on-content-click="false" location="bottom start">
+                      <template v-slot:activator="{ props: menuProps }">
+                        <v-text-field
+                          v-model="editedItem.DoBPrimary"
+                          label="Primary Contact Date of Birth"
+                          variant="outlined"
+                          density="compact"
+                          hide-details="auto"
+                          class="mb-2"
+                          placeholder="YYYY-MM-DD"
+                        >
+                          <template v-slot:append-inner>
+                            <v-icon v-bind="menuProps" style="cursor:pointer">mdi-calendar</v-icon>
+                          </template>
+                        </v-text-field>
+                      </template>
+                      <v-date-picker
+                        v-model="dobPickerPrimaryDate"
+                        @update:model-value="onDobPrimaryPickerEdit"
+                        hide-header
+                        show-adjacent-months
+                      ></v-date-picker>
+                    </v-menu>
+                  </v-col>
+
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      class="textfield-family mb-2"
+                      label="Email"
+                      v-model="editedItem.Email"
+                      :rules="[emailOrAddressRequiredRule]"
+                      variant="outlined"
+                      hide-details="auto"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      class="textfield-family mb-2"
+                      label="Phone"
+                      v-model="editedItem.Phone"
+                      variant="outlined"
+                      hide-details="auto"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      class="textfield-family mb-2"
+                      label="Cell Phone"
+                      v-model="editedItem.CellPhone"
+                      variant="outlined"
+                      hide-details="auto"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+
+                  <v-col cols="12" md="6">
+                    <v-select
+                      class="textfield-family mb-2"
+                      v-model="editedItem.PreferredContactMethods"
+                      :items="Options.preferredContactMethods"
+                      variant="outlined"
+                      label="Preferred Contact Methods"
+                      density="compact"
+                      hide-details
+                      multiple
+                      chips
+                    ></v-select>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-select
+                      class="textfield-family mb-2"
+                      v-model="editedItem.PreferredContactTime"
+                      :items="Options.preferredContactTimes"
+                      variant="outlined"
+                      label="Preferred Contact Time"
+                      density="compact"
+                      hide-details
+                    ></v-select>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-text-field
+                      class="textfield-family mb-2"
+                      label="Preferred Contact Notes"
+                      v-model="editedItem.PreferredContactNotes"
+                      variant="outlined"
+                      hide-details="auto"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-select
+                      class="textfield-family mb-2"
+                      v-model="editedItem.PrimaryGenderIdentity"
+                      :items="Options.genderIdentity"
+                      variant="outlined"
+                      label="Primary Contact Gender Identity"
+                      density="compact"
+                      hide-details
+                      item-title="title"
+                      item-value="value"
+                    ></v-select>
+                  </v-col>
+
+                  <v-col cols="12" md="4">
+                    <v-combobox
+                      class="textfield-family mb-2"
+                      v-model="editedItem.LanguagePrimary"
+                      :items="Options.language"
+                      variant="outlined"
+                      label="Primary Language (optional)"
+                      density="compact"
+                      hide-details
+                    ></v-combobox>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-combobox
+                      class="textfield-family mb-2"
+                      v-model="editedItem.RacePrimary"
+                      :items="Options.race"
+                      variant="outlined"
+                      label="Primary Race (optional)"
+                      density="compact"
+                      hide-details
+                    ></v-combobox>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      class="textfield-family mb-2"
+                      label="English % (optional)"
+                      v-model="editedItem.EnglishPercent"
+                      :rules="[englishPercentRule]"
+                      variant="outlined"
+                      hide-details="auto"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      class="textfield-family mb-2"
+                      label="Mailing Address"
+                      v-model="editedItem.Address"
+                      :rules="[addressOrEmailRequiredRule]"
+                      variant="outlined"
+                      hide-details="auto"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-select
+                      class="textfield-family mb-2"
+                      v-model="editedItem.AutismHistory"
+                      :items="Options.autism"
+                      variant="outlined"
+                      label="Autism History"
+                      density="compact"
+                      hide-details
+                      item-title="title"
+                      item-value="value"
+                    ></v-select>
+                  </v-col>
                 </v-row>
+              </div>
+
+              <div class="mb-4">
+                <v-btn
+                  v-if="!showSecondaryContact"
+                  variant="tonal"
+                  color="secondary"
+                  prepend-icon="mdi-plus"
+                  @click="showSecondaryContact = true"
+                >
+                  Add another adult household member (optional)
+                </v-btn>
+
+                <v-expand-transition>
+                  <div v-show="showSecondaryContact" class="mt-3">
+                    <div class="d-flex align-center mb-2 px-1" style="gap: 8px">
+                      <div class="text-caption font-weight-bold text-uppercase text-muted">Secondary Contact</div>
+                      <v-chip size="x-small" variant="outlined" color="secondary">Optional</v-chip>
+                      <v-spacer></v-spacer>
+                      <v-btn
+                        variant="text"
+                        color="secondary"
+                        size="small"
+                        @click="showSecondaryContact = false"
+                      >
+                        Hide
+                      </v-btn>
+                    </div>
+                    <v-row dense>
+                      <v-col cols="12" md="6">
+                        <v-text-field
+                          class="textfield-family mb-2"
+                          label="Secondary Contact Name"
+                          v-model="editedItem.NameSecondary"
+                          :rules="$rules.name"
+                          variant="outlined"
+                          hide-details="auto"
+                          density="compact"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-select
+                          class="textfield-family mb-2"
+                          v-model="editedItem.SecondaryGenderIdentity"
+                          :items="Options.genderIdentity"
+                          variant="outlined"
+                          label="Secondary Contact Gender Identity"
+                          density="compact"
+                          hide-details
+                          item-title="title"
+                          item-value="value"
+                        ></v-select>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-combobox
+                          class="textfield-family mb-2"
+                          v-model="editedItem.LanguageSecondary"
+                          :items="Options.language"
+                          variant="outlined"
+                          label="Secondary Language"
+                          density="compact"
+                          hide-details
+                        ></v-combobox>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-combobox
+                          class="textfield-family mb-2"
+                          v-model="editedItem.RaceSecondary"
+                          :items="Options.race"
+                          variant="outlined"
+                          label="Secondary Race"
+                          density="compact"
+                          hide-details
+                        ></v-combobox>
+                      </v-col>
+                    </v-row>
+                  </div>
+                </v-expand-transition>
               </div>
             </v-form>
           </v-card-text>
@@ -913,7 +1072,7 @@
           >
           <div class="text-h6 text-muted font-weight-bold">Child Information</div>
           <div class="text-body-2 text-muted px-4 text-center mt-2">
-            Children associated with the family will appear here.
+            Children whose caregiver provided their name and birth date in the intake form will appear here.
           </div>
         </v-card>
       </v-col>
@@ -1407,6 +1566,7 @@ export default {
       scheduleToDelete: null,
       isDeletingTimelineSchedule: false,
       dialog: false,
+      showSecondaryContact: false,
       dobMenuPrimary: false,
       dobPickerPrimaryDate: null,
       valid: true,
@@ -1425,8 +1585,12 @@ export default {
         LanguagePrimary: null,
         LanguageSecondary: null,
         EnglishPercent: null,
+        PreferredContactMethods: [],
+        PreferredContactTime: null,
+        PreferredContactNotes: null,
         RacePrimary: null,
         RaceSecondary: null,
+        AutismHistory: null,
         Vehicle: null,
         RecruitmentMethod: null,
         NextContactDate: null,
@@ -1446,8 +1610,12 @@ export default {
         LanguagePrimary: null,
         LanguageSecondary: null,
         EnglishPercent: null,
+        PreferredContactMethods: [],
+        PreferredContactTime: null,
+        PreferredContactNotes: null,
         RacePrimary: null,
         RaceSecondary: null,
+        AutismHistory: null,
         Vehicle: null,
         RecruitmentMethod: null,
         NextContactDate: null,
@@ -1468,8 +1636,12 @@ export default {
         LanguagePrimary: null,
         LanguageSecondary: null,
         EnglishPercent: null,
+        PreferredContactMethods: [],
+        PreferredContactTime: null,
+        PreferredContactNotes: null,
         RacePrimary: null,
         RaceSecondary: null,
+        AutismHistory: null,
         Vehicle: null,
         RecruitmentMethod: null,
         NextContactDate: null,
@@ -1648,7 +1820,13 @@ export default {
           { title: "Prefer Not to Say", value: "Prefer Not to Say" },
           { title: "Not Applicable", value: "Not Applicable" },
         ],
-        language: ["English", "French", "Chinese", "Spanish", "Hindi"],
+        language: ["English", "French", "Chinese", "Spanish", "Hindi", "Other"],
+        preferredContactMethods: ["Email", "Text message", "Phone call", "Other"],
+        preferredContactTimes: [
+          "Morning (9am-11am)",
+          "Afternoon (12pm-3pm)",
+          "Evening (3pm-6pm)",
+        ],
         race: ["Indian", "Asian", "African", "Hispanic", "Caucasian", "Arabic"],
         recruitmentMethod: ["Hospital", "Events", "SocialMedia", "PreviousParticipation"],
         studyType: ["Behavioural", "EEG/ERP", "EyeTracking", "fNIRS", "Online"],
@@ -1657,6 +1835,44 @@ export default {
   },
 
   methods: {
+    hasSecondaryContactData() {
+      return Boolean(
+        this.editedItem?.NameSecondary ||
+        this.editedItem?.SecondaryGenderIdentity ||
+        this.editedItem?.LanguageSecondary ||
+        this.editedItem?.RaceSecondary
+      );
+    },
+
+    phoneOrCellRequiredRule(value) {
+      if (value || this.editedItem.CellPhone) return true;
+      return "Provide Phone or Cell Phone.";
+    },
+
+    cellOrPhoneRequiredRule(value) {
+      if (value || this.editedItem.Phone) return true;
+      return "Provide Phone or Cell Phone.";
+    },
+
+    englishPercentRule(value) {
+      if (value === null || value === undefined || value === "") return true;
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed < 0 || parsed > 100) {
+        return "Enter an integer between 0 and 100.";
+      }
+      return true;
+    },
+
+    emailOrAddressRequiredRule(value) {
+      if (value || this.editedItem.Address) return true;
+      return "Provide either Email or Mailing Address.";
+    },
+
+    addressOrEmailRequiredRule(value) {
+      if (value || this.editedItem.Email) return true;
+      return "Provide either Mailing Address or Email.";
+    },
+
     copyToClipboard(text) {
       if (!text) return;
       navigator.clipboard.writeText(String(text)).catch(() => {
@@ -1987,6 +2203,7 @@ export default {
       }
       this.editedIndex = -1;
       this.editedItem = Object.assign({}, this.familyTemplate);
+      this.showSecondaryContact = false;
       this.dobMenuPrimary = false;
       this.dobPickerPrimaryDate = null;
       this.dialog = true;
@@ -1995,6 +2212,7 @@ export default {
     editFamily() {
       this.editedIndex = this.Families.indexOf(this.currentFamily);
       this.editedItem = Object.assign({}, this.currentFamily);
+      this.showSecondaryContact = this.hasSecondaryContactData();
       if (this.editedItem.DoBPrimary) {
         this.editedItem.DoBPrimary = moment(this.editedItem.DoBPrimary).format("YYYY-MM-DD");
         this.dobPickerPrimaryDate = new Date(this.editedItem.DoBPrimary + "T12:00:00");
@@ -2015,6 +2233,11 @@ export default {
     },
 
     async save() {
+      if (this.$refs.form) {
+        const result = await this.$refs.form.validate();
+        if (!result.valid) return;
+      }
+
       try {
         if (this.editedIndex > -1) {
           this.editedItem.UpdatedBy = this.store.userID;
@@ -2075,6 +2298,7 @@ export default {
 
     close() {
       this.dialog = false;
+      this.showSecondaryContact = false;
       this.dobMenuPrimary = false;
       setTimeout(() => {
         this.editedItem = Object.assign({}, this.familyTemplate);
