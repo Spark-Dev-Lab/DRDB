@@ -110,10 +110,11 @@ export default {
 
       let childNames = "";
 
+      const isAdult = this.appointments.length > 0 && this.participantContextFor(this.appointments[0]).participantType === "Adult";
       if (nameList.length <= 2) {
         childNames = nameList.join(" and ");
       } else {
-        childNames = "your " + nameList.length + " children";
+        childNames = isAdult ? "your " + nameList.length + " participants" : "your " + nameList.length + " children";
       }
       return childNames;
     },
@@ -165,20 +166,26 @@ export default {
         case "ScheduleUpdate":
           this.emailSubject = "An update on your visit on " + moment(this.appointmentTime).format("MMM D (ddd), [at] h:mma");
           break;
-        case "Introduction":
-          this.emailSubject = "An eligible study for " + this.childNames();
+        case "Introduction": {
+          const isAdultIntro = this.appointments.length > 0 && this.participantContextFor(this.appointments[0]).participantType === "Adult";
+          this.emailSubject = isAdultIntro ? "An eligible study for you" : "An eligible study for " + this.childNames();
           break;
+        }
         case "Reschedule":
         case "cancelledReminder":
-        case "noShowReminder":
-          this.emailSubject = "Reschedule " + this.childNames() + "'s study appointment";
+        case "noShowReminder": {
+          const isAdultReschedule = this.appointments.length > 0 && this.participantContextFor(this.appointments[0]).participantType === "Adult";
+          this.emailSubject = isAdultReschedule ? "Reschedule your study appointment" : "Reschedule " + this.childNames() + "'s study appointment";
           break;
+        }
         case "Follow-up":
           this.emailSubject = "We would love to hear from you: Invitation to participate in our study";
           break;
-        case "Reminder":
-          this.emailSubject = "Reminder for your study appointment with " + this.childNames();
+        case "Reminder": {
+          const isAdultReminder = this.appointments.length > 0 && this.participantContextFor(this.appointments[0]).participantType === "Adult";
+          this.emailSubject = isAdultReminder ? "Reminder for your study appointment" : "Reminder for your study appointment with " + this.childNames();
           break;
+        }
         case "ThankYou":
           this.emailSubject = "Thank you for your participation!";
           break;
@@ -243,10 +250,14 @@ export default {
 
         switch (this.emailType) {
           case "Confirmation":
-            opening = "<p>Dear " + parentName + ",</p><p>Thanks for your support to our research! This is a confirmation for your participation in our study " + participantPhrase + " <strong>" + participantNames + moment(this.appointmentTime).format(" [on] dddd [(]MMM Do[)] [at] h:mma") + "</strong>.</p>";
+            opening = isAdultParticipant
+              ? "<p>Dear " + parentName + ",</p><p>Thanks for your support to our research! This is a confirmation for your participation in our study<strong>" + moment(this.appointmentTime).format(" [on] dddd [(]MMM Do[)] [at] h:mma") + "</strong>.</p>"
+              : "<p>Dear " + parentName + ",</p><p>Thanks for your support to our research! This is a confirmation for your participation in our study with <strong>" + participantNames + moment(this.appointmentTime).format(" [on] dddd [(]MMM Do[)] [at] h:mma") + "</strong>.</p>";
             break;
           case "ScheduleUpdate":
-            opening = "<p>Dear " + parentName + ",</p><p>This is an update on your visit " + participantPhrase + " <strong>" + participantNames + moment(this.appointmentTime).format(" [on] dddd [(]MMM Do[)] [at] h:mma") + "</strong>.</p>";
+            opening = isAdultParticipant
+              ? "<p>Dear " + parentName + ",</p><p>This is an update on your visit<strong>" + moment(this.appointmentTime).format(" [on] dddd [(]MMM Do[)] [at] h:mma") + "</strong>.</p>"
+              : "<p>Dear " + parentName + ",</p><p>This is an update on your visit with <strong>" + participantNames + moment(this.appointmentTime).format(" [on] dddd [(]MMM Do[)] [at] h:mma") + "</strong>.</p>";
             break;
           case "Introduction":
             opening = "<p>Dear " + parentName + ",</p><p>We are " + this.store.labName + ". We would love to have " + familyPhrase + " participate in our study.</p><p>Here is the information about the study:</p>";
@@ -313,7 +324,10 @@ export default {
             let emailBody = (this.appointments[0].Study.ReminderTemplate || "").replace(/\${{ZoomLink}}/g, ZoomLink);
 
             if (this.appointments[0].Study.StudyType === "Online") {
-              emailBody += "<p>You can download Zoom for your computer here: <a href='https://zoom.us/download'>Download Link</a></p><p><a href='https://mcmasteru365-my.sharepoint.com/:p:/g/personal/xiaon8_mcmaster_ca/EdhORdZeCwlPn-X54WquFz8Boegr1YpaNy9mzlW_wJ8ZjQ?e=hvDNGr'>CLICK HERE</a> to learn a few tips to setup online study with your child.</p>";
+              const isAdultOnline = this.participantContextFor(this.appointments[0]).participantType === "Adult";
+              emailBody += isAdultOnline
+                ? "<p>You can download Zoom for your computer here: <a href='https://zoom.us/download'>Download Link</a></p>"
+                : "<p>You can download Zoom for your computer here: <a href='https://zoom.us/download'>Download Link</a></p><p><a href='https://mcmasteru365-my.sharepoint.com/:p:/g/personal/xiaon8_mcmaster_ca/EdhORdZeCwlPn-X54WquFz8Boegr1YpaNy9mzlW_wJ8ZjQ?e=hvDNGr'>CLICK HERE</a> to learn a few tips to setup online study with your child.</p>";
             }
 
             emailBody = emailBody.replace(/\${{childName}}/g, this.childNames());

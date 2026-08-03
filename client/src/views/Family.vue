@@ -783,7 +783,7 @@
                           v-model="editedItem.LanguageSecondary"
                           :items="Options.language"
                           variant="outlined"
-                          label="Secondary Language"
+                          label="Secondary Language (optional)"
                           density="compact"
                           hide-details
                         ></v-combobox>
@@ -794,7 +794,7 @@
                           v-model="editedItem.RaceSecondary"
                           :items="Options.race"
                           variant="outlined"
-                          label="Secondary Race"
+                          label="Secondary Race (optional)"
                           density="compact"
                           hide-details
                         ></v-combobox>

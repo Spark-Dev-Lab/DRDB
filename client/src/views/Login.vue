@@ -70,8 +70,9 @@
           <div class="text-center">
             <p class="text-caption text-muted mb-2">First time using the system?</p>
             <v-btn variant="outlined" size="small" color="secondary" prepend-icon="mdi-book-open-page-variant" href="https://mcmaster-baby-lab.github.io/handbook/DRDB" target="_blank">
-              Read the Handbook
+              DRDB Handbook (Legacy)
             </v-btn>
+            <p class="text-caption text-muted mt-2" style="font-style: italic;">ObCRC handbook in progress</p>
           </div>
 
           <div class="text-center mt-8 login-bottom-credits" style="opacity: 0.8;">

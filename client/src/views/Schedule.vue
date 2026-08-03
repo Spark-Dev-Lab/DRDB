@@ -191,11 +191,12 @@
 
             <v-divider class="my-3"></v-divider>
 
-            <!-- Child Info -->
-            <div class="d-flex justify-space-between align-center mb-2 px-1">
+            <!-- Child Info (hidden for adult studies since primary contact IS the participant) -->
+            <div v-if="!isAdultStudy" class="d-flex justify-space-between align-center mb-2 px-1">
               <span class="text-caption font-weight-bold text-uppercase text-muted">Child</span>
             </div>
 
+            <template v-if="!isAdultStudy">
             <div class="d-flex align-center mb-3">
               <v-icon color="primary" class="mr-3" size="28">
                 {{ currentChild.Sex === 'M' ? 'mdi-face-man' : (currentChild.Sex === 'F' ? 'mdi-face-woman' : 'mdi-face-recognition') }}
@@ -241,6 +242,7 @@
                 <v-icon size="x-small" color="success">mdi-check-circle</v-icon> Saved
               </div>
             </div>
+            </template>
           </v-card-text>
 
           <!-- Empty state when no child is loaded -->
