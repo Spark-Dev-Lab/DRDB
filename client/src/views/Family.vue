@@ -236,13 +236,14 @@
                     {{ currentFamily.RacePrimary }}
                   </v-chip>
                   <v-chip
+                    v-for="(method, idx) in parseJsonArray(currentFamily.RecruitmentMethod)"
+                    :key="idx"
                     size="small"
                     variant="outlined"
                     color="tertiary"
                     prepend-icon="mdi-hospital-building"
-                    v-if="currentFamily.RecruitmentMethod"
                   >
-                    {{ currentFamily.RecruitmentMethod }}
+                    {{ recruitmentMethodLabel(method) }}
                   </v-chip>
                   <v-chip
                     size="small"
@@ -539,6 +540,7 @@
             <v-form ref="form" v-model="valid" lazy-validation>
               <v-alert type="info" variant="tonal" density="compact" class="mb-4" border="start">
                 The primary contact is the individual who completed the Prospective Participant Sign Up Form.
+                <strong>A first &amp; last name for at least one individual along with their mailing address or email address are required to create a household record in ObCRC.</strong>
               </v-alert>
 
               <div class="mb-6">
@@ -617,29 +619,31 @@
                     ></v-text-field>
                   </v-col>
 
-                  <v-col cols="12" md="6">
-                    <v-select
-                      class="textfield-family mb-2"
-                      v-model="editedItem.PreferredContactMethods"
-                      :items="Options.preferredContactMethods"
-                      variant="outlined"
-                      label="Preferred Contact Methods"
-                      density="compact"
-                      hide-details
-                      multiple
-                      chips
-                    ></v-select>
+                  <v-col cols="12">
+                    <div class="text-caption font-weight-bold text-uppercase text-muted mb-1 mt-1">Preferred Contact Method</div>
+                    <div class="d-flex flex-wrap" style="gap: 6px;">
+                      <v-chip
+                        v-for="method in Options.preferredContactMethods" :key="method"
+                        size="small"
+                        :variant="(editedItem.PreferredContactMethods || []).includes(method) ? 'flat' : 'outlined'"
+                        :color="(editedItem.PreferredContactMethods || []).includes(method) ? 'primary' : 'default'"
+                        class="cursor-pointer mb-1"
+                        @click="toggleFamilyContactMethod(method)"
+                      >{{ method }}</v-chip>
+                    </div>
                   </v-col>
-                  <v-col cols="12" md="6">
-                    <v-select
-                      class="textfield-family mb-2"
-                      v-model="editedItem.PreferredContactTime"
-                      :items="Options.preferredContactTimes"
-                      variant="outlined"
-                      label="Preferred Contact Time"
-                      density="compact"
-                      hide-details
-                    ></v-select>
+                  <v-col cols="12">
+                    <div class="text-caption font-weight-bold text-uppercase text-muted mb-1 mt-1">Preferred Contact Time</div>
+                    <div class="d-flex flex-wrap" style="gap: 6px;">
+                      <v-chip
+                        v-for="time in Options.preferredContactTimes" :key="time"
+                        size="small"
+                        :variant="familyContactTimesArray.includes(time) ? 'flat' : 'outlined'"
+                        :color="familyContactTimesArray.includes(time) ? 'primary' : 'default'"
+                        class="cursor-pointer mb-1"
+                        @click="toggleFamilyContactTime(time)"
+                      >{{ time }}</v-chip>
+                    </div>
                   </v-col>
                   <v-col cols="12">
                     <v-text-field
@@ -657,7 +661,7 @@
                       v-model="editedItem.PrimaryGenderIdentity"
                       :items="Options.genderIdentity"
                       variant="outlined"
-                      label="Primary Contact Gender Identity"
+                      label="Primary Contact Gender Identity (optional)"
                       density="compact"
                       hide-details
                       item-title="title"
@@ -710,20 +714,21 @@
                       density="compact"
                     ></v-text-field>
                   </v-col>
-                  <v-col cols="12" md="6">
-                    <v-select
-                      class="textfield-family mb-2"
-                      v-model="editedItem.AutismHistory"
-                      :items="Options.autism"
-                      variant="outlined"
-                      label="Autism History"
-                      density="compact"
-                      hide-details
-                      item-title="title"
-                      item-value="value"
-                    ></v-select>
-                  </v-col>
                 </v-row>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-caption font-weight-bold text-uppercase text-muted mb-2">How did they hear about us? <span class="font-weight-regular text-lowercase">(select all that apply)</span></div>
+                <div class="d-flex flex-wrap" style="gap: 8px">
+                  <v-chip
+                    v-for="opt in Options.recruitmentMethods"
+                    :key="opt.key"
+                    size="small"
+                    :variant="(editedItem.RecruitmentMethod || []).includes(opt.key) ? 'flat' : 'outlined'"
+                    :color="(editedItem.RecruitmentMethod || []).includes(opt.key) ? 'primary' : 'default'"
+                    @click="toggleRecruitmentMethod(opt.key)"
+                  >{{ opt.label }}</v-chip>
+                </div>
               </div>
 
               <div class="mb-4">
@@ -1017,13 +1022,35 @@
 
               <v-list-item prepend-icon="mdi-hospital-building" class="px-2">
                 <v-list-item-title class="text-caption text-muted"
-                  >Recruitment Method</v-list-item-title
+                  >Recruitment</v-list-item-title
                 >
                 <v-list-item-subtitle
                   class="font-weight-medium text-wrap mt-1"
                   style="line-height: 1.4; opacity: 1"
                 >
-                  {{ currentFamily.RecruitmentMethod || "Not specified" }}
+                  <div v-if="parseJsonArray(currentFamily.RecruitmentMethod).length">
+                    <v-chip
+                      v-for="(method, idx) in parseJsonArray(currentFamily.RecruitmentMethod)"
+                      :key="idx"
+                      size="small"
+                      class="mr-1 mb-1"
+                    >{{ recruitmentMethodLabel(method) }}</v-chip>
+                  </div>
+                  <span v-else>Not specified</span>
+                  <div v-if="currentFamily.BrochureSeen" class="mt-1">
+                    Brochure/flyer seen: {{ currentFamily.BrochureSeen }}
+                  </div>
+                  <div v-if="currentFamily.BrochureLocation" class="mt-1">
+                    <span class="text-caption text-muted">Where:</span>
+                    <v-chip
+                      v-for="(loc, idx) in parseJsonArray(currentFamily.BrochureLocation)"
+                      :key="'loc'+idx"
+                      size="small"
+                      class="mt-1 mr-1"
+                    >
+                      {{ loc }}
+                    </v-chip>
+                  </div>
                 </v-list-item-subtitle>
               </v-list-item>
 
@@ -1592,7 +1619,7 @@ export default {
         RaceSecondary: null,
         AutismHistory: null,
         Vehicle: null,
-        RecruitmentMethod: null,
+        RecruitmentMethod: [],
         NextContactDate: null,
         Note: null,
       },
@@ -1617,7 +1644,9 @@ export default {
         RaceSecondary: null,
         AutismHistory: null,
         Vehicle: null,
-        RecruitmentMethod: null,
+        RecruitmentMethod: [],
+        BrochureSeen: null,
+        BrochureLocation: null,
         NextContactDate: null,
         Note: null,
         scheduled: false,
@@ -1643,7 +1672,6 @@ export default {
         RaceSecondary: null,
         AutismHistory: null,
         Vehicle: null,
-        RecruitmentMethod: null,
         NextContactDate: null,
         Note: null,
         scheduled: false,
@@ -1828,7 +1856,14 @@ export default {
           "Evening (3pm-6pm)",
         ],
         race: ["Indian", "Asian", "African", "Hispanic", "Caucasian", "Arabic"],
-        recruitmentMethod: ["Hospital", "Events", "SocialMedia", "PreviousParticipation"],
+        recruitmentMethods: [
+          { label: "Community Event (tabling, Farmer's Market, etc.)", key: "CommunityEvent" },
+          { label: "OberlinKids Referral", key: "OberlinKidsReferral" },
+          { label: "Social Media", key: "SocialMedia" },
+          { label: "Lab Website", key: "Lab website" },
+          { label: "Previous Participation in Oberlin Research", key: "PreviousParticipation" },
+          { label: "Other", key: "Other" },
+        ],
         studyType: ["Behavioural", "EEG/ERP", "EyeTracking", "fNIRS", "Online"],
       },
     };
@@ -1842,6 +1877,45 @@ export default {
         this.editedItem?.LanguageSecondary ||
         this.editedItem?.RaceSecondary
       );
+    },
+
+    toggleFamilyContactMethod(method) {
+      if (!this.editedItem.PreferredContactMethods) this.editedItem.PreferredContactMethods = [];
+      const i = this.editedItem.PreferredContactMethods.indexOf(method);
+      if (i >= 0) this.editedItem.PreferredContactMethods.splice(i, 1);
+      else this.editedItem.PreferredContactMethods.push(method);
+    },
+
+    toggleRecruitmentMethod(key) {
+      if (!Array.isArray(this.editedItem.RecruitmentMethod)) this.editedItem.RecruitmentMethod = [];
+      const i = this.editedItem.RecruitmentMethod.indexOf(key);
+      if (i >= 0) this.editedItem.RecruitmentMethod.splice(i, 1);
+      else this.editedItem.RecruitmentMethod.push(key);
+    },
+
+    toggleFamilyContactTime(time) {
+      const current = this.familyContactTimesArray;
+      const updated = current.includes(time)
+        ? current.filter(t => t !== time)
+        : [...current, time];
+      this.editedItem.PreferredContactTime = updated.join(', ');
+    },
+
+    parseJsonArray(value) {
+      if (!value) return [];
+      if (Array.isArray(value)) return value;
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        return [value]; // plain string — treat as single item
+      }
+    },
+
+    // Converts "CommunityEvent" → "Community Event", "Lab website" → "Lab website"
+    recruitmentMethodLabel(key) {
+      if (!key) return key;
+      return key.replace(/([A-Z])/g, ' $1').trim();
     },
 
     phoneOrCellRequiredRule(value) {
@@ -2213,6 +2287,21 @@ export default {
       this.editedIndex = this.Families.indexOf(this.currentFamily);
       this.editedItem = Object.assign({}, this.currentFamily);
       this.showSecondaryContact = this.hasSecondaryContactData();
+      // Deserialize stored arrays
+      if (typeof this.editedItem.PreferredContactMethods === 'string') {
+        try {
+          this.editedItem.PreferredContactMethods = JSON.parse(this.editedItem.PreferredContactMethods);
+        } catch (e) {
+          this.editedItem.PreferredContactMethods = [];
+        }
+      }
+      if (typeof this.editedItem.RecruitmentMethod === 'string') {
+        try {
+          this.editedItem.RecruitmentMethod = JSON.parse(this.editedItem.RecruitmentMethod) || [];
+        } catch (e) {
+          this.editedItem.RecruitmentMethod = [];
+        }
+      }
       if (this.editedItem.DoBPrimary) {
         this.editedItem.DoBPrimary = moment(this.editedItem.DoBPrimary).format("YYYY-MM-DD");
         this.dobPickerPrimaryDate = new Date(this.editedItem.DoBPrimary + "T12:00:00");
@@ -2244,7 +2333,11 @@ export default {
           delete this.editedItem.Schedules;
           delete this.editedItem.Children;
           delete this.editedItem.Conversations;
-
+          // Serialize contact prefs before saving
+          if (Array.isArray(this.editedItem.PreferredContactMethods))
+            this.editedItem.PreferredContactMethods = JSON.stringify(this.editedItem.PreferredContactMethods);
+          if (Array.isArray(this.editedItem.RecruitmentMethod))
+            this.editedItem.RecruitmentMethod = JSON.stringify(this.editedItem.RecruitmentMethod);
           await family.update(this.editedItem);
           Object.assign(this.Families[this.editedIndex], this.editedItem);
           console.log("Household information updated!");
@@ -2254,6 +2347,11 @@ export default {
           this.editedItem.UpdatedBy = this.store.userID;
           this.editedItem.CreatedBy = this.store.userID;
           this.editedItem.TrainingSet = this.store.trainingMode;
+          // Serialize contact prefs before saving
+          if (Array.isArray(this.editedItem.PreferredContactMethods))
+            this.editedItem.PreferredContactMethods = JSON.stringify(this.editedItem.PreferredContactMethods);
+          if (Array.isArray(this.editedItem.RecruitmentMethod))
+            this.editedItem.RecruitmentMethod = JSON.stringify(this.editedItem.RecruitmentMethod);
 
           const newfamilyId = await family.create(this.editedItem);
           this.editedItem.id = newfamilyId.data.id;
@@ -2534,6 +2632,12 @@ export default {
   },
 
   computed: {
+    familyContactTimesArray() {
+      const raw = this.editedItem.PreferredContactTime;
+      if (!raw) return [];
+      if (Array.isArray(raw)) return raw;
+      return raw.split(',').map(s => s.trim()).filter(Boolean);
+    },
     resultEntityLabelSingular() {
       return this.familySearchMode === "followup" ? "Record" : "Family";
     },

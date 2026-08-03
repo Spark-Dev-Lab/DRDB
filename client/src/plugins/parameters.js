@@ -482,13 +482,6 @@ export default {
             ],
             language: ["English", "French", "Chinese", "Spanish", "Hindi"],
             race: ["Indian", "Asian", "African", "Hispanic", "Caucasian", "Arabic"],
-            recruitmentMethod: [
-                "Hospital",
-                "Events",
-                "SocialMedia",
-                "PreviousParticipation",
-                "OberlinKids","Other",
-            ],
             studyType: ["Behavioural", "EEG/ERP", "HeadMountedEyeTracking", "ScreenEyeTracking", "Online Asynchronous", "Online Synchronous"],
             fullRoles: [
                 "PostDoc",

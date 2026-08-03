@@ -185,6 +185,24 @@ exports.batchCreate0 = asyncHandler(async (req, res) => {
   }
 });
 
+// Import records from the Oberlin intake form (each record has { family, children[] })
+exports.importIntakeForms = asyncHandler(async (req, res) => {
+  try {
+    const records = Array.isArray(req.body) ? req.body : req.body.records;
+    const assignedLab = req.userData?.lab ?? null;
+    // Stamp the current lab onto every family record before import
+    const stamped = (records || []).map((r) => ({
+      ...r,
+      family: { ...r.family, AssignedLab: assignedLab },
+    }));
+    const result = await familyService.importIntakeForms(stamped);
+    res.status(200).send(result);
+  } catch (error) {
+    console.error("Intake form import error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Retrieve all families from the database.
 exports.search = asyncHandler(async (req, res) => {
   var queryString = {};
@@ -242,6 +260,13 @@ exports.search = asyncHandler(async (req, res) => {
 
     queryString.DoBPrimary = { [Op.between]: [earliestDob, latestDob] };
   }
+
+  // Health/screening criteria — map same param names as child search, but filter on Family fields
+  if (req.query.ASDParticipant != null) queryString.ASD = req.query.ASDParticipant;
+  if (req.query.PrematureParticipant != null) queryString.PrematureBirth = req.query.PrematureParticipant;
+  if (req.query.IllParticipant != null) queryString.Illness = req.query.IllParticipant;
+  if (req.query.VisionLossParticipant != null) queryString.VisionLoss = req.query.VisionLossParticipant;
+  if (req.query.HearingLossParticipant != null) queryString.HearingLoss = req.query.HearingLossParticipant;
 
   if (req.query.NextContactDate) {
     queryString.NextContactDate = {

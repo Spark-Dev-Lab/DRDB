@@ -127,6 +127,8 @@ router.post("/add", checkAuth, familyCreateValidation, validate, FamilyControlle
  */
 router.post("/addBatch", checkAuth, FamilyController.batchCreate0);
 
+router.post("/importIntakeForms", checkAuth, FamilyController.importIntakeForms);
+
 /**
  * @swagger
  * /api/family:

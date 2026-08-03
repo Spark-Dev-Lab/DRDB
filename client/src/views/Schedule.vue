@@ -134,7 +134,7 @@
                   Delete Household
                 </v-btn>
                 <v-btn color="primary" variant="outlined" size="small" prepend-icon="mdi-pencil" width="130"
-                  @click.stop="editFamilyAndChild" :disabled="!currentChild.id">
+                  @click.stop="editFamilyAndChild" :disabled="isAdultStudy ? !currentFamily.id : !currentChild.id">
                   Edit Info
                 </v-btn>
                 <v-btn color="success" variant="tonal" size="small" prepend-icon="mdi-account-child" width="130"
@@ -172,19 +172,27 @@
                 :title="currentFamily.Address || 'No address provided'">
               </v-list-item>
               <v-list-item prepend-icon="mdi-message-text-outline" class="px-0" density="compact">
-                <v-list-item-title>
-                  <span v-if="preferredContactMethodsDisplay">
-                    Preferred method: {{ preferredContactMethodsDisplay }}
-                  </span>
-                  <span v-else class="text-muted">No preferred contact method provided</span>
+                <v-list-item-title class="d-flex flex-wrap align-center" style="gap: 4px; min-height: 28px;">
+                  <span class="text-caption text-muted mr-1">Method:</span>
+                  <template v-for="method in contactMethodOptions" :key="method">
+                    <v-chip
+                      size="x-small"
+                      :variant="isContactMethodSelected(method) ? 'flat' : 'outlined'"
+                      :color="isContactMethodSelected(method) ? 'primary' : 'default'"
+                    >{{ method }}</v-chip>
+                  </template>
                 </v-list-item-title>
               </v-list-item>
               <v-list-item prepend-icon="mdi-clock-outline" class="px-0" density="compact">
-                <v-list-item-title>
-                  <span v-if="preferredContactTimeDisplay">
-                    Preferred time: {{ preferredContactTimeDisplay }}
-                  </span>
-                  <span v-else class="text-muted">No preferred contact time provided</span>
+                <v-list-item-title class="d-flex flex-wrap align-center" style="gap: 4px; min-height: 28px;">
+                  <span class="text-caption text-muted mr-1">Time:</span>
+                  <template v-for="time in contactTimeOptions" :key="time">
+                    <v-chip
+                      size="x-small"
+                      :variant="isContactTimeSelected(time) ? 'flat' : 'outlined'"
+                      :color="isContactTimeSelected(time) ? 'primary' : 'default'"
+                    >{{ time }}</v-chip>
+                  </template>
                 </v-list-item-title>
               </v-list-item>
             </v-list>
@@ -429,7 +437,7 @@
       <v-card class="ds-card" variant="flat">
         <v-card-title class="d-flex justify-space-between align-center py-4 ds-header-gradient">
           <span class="text-h6 font-weight-bold" style="font-family: var(--ds-font-family-heading)">
-            Edit Family & Child Information
+            {{ isAdultStudy ? 'Edit Individual & Household Information' : 'Edit Family & Child Information' }}
             <span class="text-subtitle-1 text-white ml-2 font-weight-regular" style="opacity: 0.7;">(Household ID: {{ currentFamily.id }})</span>
           </span>
           <v-btn icon="mdi-close" variant="text" density="comfortable" @click="closeUnifiedEdit"></v-btn>
@@ -440,58 +448,131 @@
         <v-card-text class="pt-6 pb-2" style="max-height: 70vh;">
           <v-form ref="formUnified" v-model="validUnified">
             
-            <!-- Household Information Section -->
+            <!-- Individual & Household Information Section -->
             <div class="mb-6">
-              <div class="text-caption font-weight-bold text-uppercase text-muted mb-3 px-1">Household Information</div>
+              <div class="text-caption font-weight-bold text-uppercase text-muted mb-3 px-1">Individual &amp; Household Information</div>
               <v-row dense>
-                <v-col cols="12" :md="item.width" v-for="item in $familyBasicInfo" :key="item.label">
-                  <div v-if="!!item.options">
-                    <div v-if="item.field !== 'AutismHistory'">
-                      <v-combobox justify="start" v-model="editedFamily[item.field]" :items="$Options[item.options]"
-                        variant="outlined" :label="item.label" density="compact" hide-details class="mb-2"></v-combobox>
-                    </div>
-                    <div v-else>
-                      <v-select :items="$Options[item.options]" v-model="editedFamily[item.field]"
-                        :label="item.label" variant="outlined" density="compact" hide-details class="mb-2" item-title="title" item-value="value"></v-select>
-                    </div>
-                  </div>
-                  <div v-else-if="item.rules">
-                    <v-text-field :label="item.label" :rules="$rules[item.rules]" v-model="editedFamily[item.field]"
-                      variant="outlined" hide-details="auto" density="compact" class="mb-2"></v-text-field>
-                  </div>
-                  <div v-else>
-                    <v-text-field :label="item.label" v-model="editedFamily[item.field]" variant="outlined" hide-details="auto"
-                      density="compact" class="mb-2"></v-text-field>
+                <!-- Matches New Household form field order exactly -->
+                <v-col cols="12" md="6">
+                  <v-text-field label="Primary Contact Name" v-model="editedFamily.NamePrimary"
+                    variant="outlined" hide-details="auto" density="compact" class="mb-2"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-menu v-model="dobMenuPrimaryEdit" :close-on-content-click="false" location="bottom start">
+                    <template v-slot:activator="{ props: menuProps }">
+                      <v-text-field v-model="editedFamily.DoBPrimary" label="Primary Contact Date of Birth"
+                        variant="outlined" density="compact" hide-details="auto" class="mb-2" placeholder="YYYY-MM-DD">
+                        <template v-slot:append-inner>
+                          <v-icon v-bind="menuProps" style="cursor:pointer">mdi-calendar</v-icon>
+                        </template>
+                      </v-text-field>
+                    </template>
+                    <v-date-picker v-model="dobPickerPrimaryEdit" @update:model-value="onDobPickerPrimaryEdit" hide-header show-adjacent-months></v-date-picker>
+                  </v-menu>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-text-field label="Email" v-model="editedFamily.Email"
+                    variant="outlined" hide-details="auto" density="compact" class="mb-2"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-text-field label="Phone" v-model="editedFamily.Phone"
+                    variant="outlined" hide-details="auto" density="compact" class="mb-2"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-text-field label="Cell Phone" v-model="editedFamily.CellPhone"
+                    variant="outlined" hide-details="auto" density="compact" class="mb-2"></v-text-field>
+                </v-col>
+                <v-col cols="12">
+                  <div class="text-caption text-muted mb-1">Preferred Contact Method</div>
+                  <div class="d-flex flex-wrap" style="gap: 6px;">
+                    <v-chip v-for="method in contactMethodOptions" :key="method" size="small"
+                      :variant="editedContactMethods.includes(method) ? 'flat' : 'outlined'"
+                      :color="editedContactMethods.includes(method) ? 'primary' : 'default'"
+                      class="cursor-pointer mb-1" @click="toggleEditContactMethod(method)"
+                    >{{ method }}</v-chip>
                   </div>
                 </v-col>
-              </v-row>
-            </div>
-
-            <!-- Contact Information Section -->
-            <div class="mb-6">
-              <div class="text-caption font-weight-bold text-uppercase text-muted mb-3 px-1">Contact Information</div>
-              <v-row dense>
-                <v-col cols="12" :md="item.width" v-for="item in $familyContactInfo" :key="item.label">
-                  <div v-if="item.options">
-                    <v-combobox justify="start" :items="$Options[item.options]" v-model="editedFamily[item.field]"
-                      variant="outlined" :label="item.label" density="compact" hide-details class="mb-2"></v-combobox>
-                  </div>
-                  <div v-else-if="item.rules">
-                    <v-text-field :label="item.label" :rules="$rules[item.rules]" v-model="editedFamily[item.field]"
-                      variant="outlined" hide-details="auto" density="compact" class="mb-2"></v-text-field>
-                  </div>
-                  <div v-else>
-                    <v-text-field :label="item.label" v-model="editedFamily[item.field]" variant="outlined" hide-details="auto"
-                      density="compact" class="mb-2"></v-text-field>
+                <v-col cols="12" class="mt-2">
+                  <div class="text-caption text-muted mb-1">Preferred Contact Time</div>
+                  <div class="d-flex flex-wrap" style="gap: 6px;">
+                    <v-chip v-for="time in contactTimeOptions" :key="time" size="small"
+                      :variant="editedContactTimes.includes(time) ? 'flat' : 'outlined'"
+                      :color="editedContactTimes.includes(time) ? 'primary' : 'default'"
+                      class="cursor-pointer mb-1" @click="toggleEditContactTime(time)"
+                    >{{ time }}</v-chip>
                   </div>
                 </v-col>
+                <v-col cols="12" class="mt-2">
+                  <v-text-field label="Preferred Contact Notes" v-model="editedFamily.PreferredContactNotes"
+                    variant="outlined" hide-details="auto" density="compact" class="mb-2"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-select v-model="editedFamily.PrimaryGenderIdentity" :items="$Options.genderIdentity"
+                    label="Primary Contact Gender Identity (optional)" variant="outlined" density="compact"
+                    hide-details class="mb-2" item-title="title" item-value="value"></v-select>
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-combobox v-model="editedFamily.LanguagePrimary" :items="$Options.language"
+                    label="Primary Language (optional)" variant="outlined" density="compact" hide-details class="mb-2"></v-combobox>
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-combobox v-model="editedFamily.RacePrimary" :items="$Options.race"
+                    label="Primary Race (optional)" variant="outlined" density="compact" hide-details class="mb-2"></v-combobox>
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-text-field label="English % (optional)" v-model="editedFamily.EnglishPercent"
+                    variant="outlined" hide-details="auto" density="compact" class="mb-2"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-text-field label="Mailing Address" v-model="editedFamily.Address"
+                    variant="outlined" hide-details="auto" density="compact" class="mb-2"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-select v-model="editedFamily.AutismHistory" :items="$Options.autism"
+                    label="Autism History" variant="outlined" density="compact" hide-details class="mb-2"
+                    item-title="title" item-value="value"></v-select>
+                </v-col>
               </v-row>
+              <!-- Secondary Contact (optional) -->
+              <div class="mt-2">
+                <v-btn v-if="!showSecondaryEditContact" variant="tonal" color="secondary" prepend-icon="mdi-plus" size="small"
+                  @click="showSecondaryEditContact = true">Add secondary contact (optional)</v-btn>
+                <v-expand-transition>
+                  <div v-show="showSecondaryEditContact" class="mt-3">
+                    <div class="d-flex align-center mb-2 px-1" style="gap: 8px;">
+                      <div class="text-caption font-weight-bold text-uppercase text-muted">Secondary Contact</div>
+                      <v-chip size="x-small" variant="outlined" color="secondary">Optional</v-chip>
+                      <v-spacer></v-spacer>
+                      <v-btn variant="text" color="secondary" size="small" @click="showSecondaryEditContact = false">Hide</v-btn>
+                    </div>
+                    <v-row dense>
+                      <v-col cols="12" md="6">
+                        <v-text-field label="Secondary Contact Name" v-model="editedFamily.NameSecondary"
+                          variant="outlined" hide-details="auto" density="compact" class="mb-2"></v-text-field>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-select v-model="editedFamily.SecondaryGenderIdentity" :items="$Options.genderIdentity"
+                          label="Secondary Contact Gender Identity (optional)" variant="outlined" density="compact"
+                          hide-details class="mb-2" item-title="title" item-value="value"></v-select>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-combobox v-model="editedFamily.LanguageSecondary" :items="$Options.language"
+                          label="Secondary Language (optional)" variant="outlined" density="compact" hide-details class="mb-2"></v-combobox>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-combobox v-model="editedFamily.RaceSecondary" :items="$Options.race"
+                          label="Secondary Race (optional)" variant="outlined" density="compact" hide-details class="mb-2"></v-combobox>
+                      </v-col>
+                    </v-row>
+                  </div>
+                </v-expand-transition>
+              </div>
             </div>
 
-            <v-divider class="mb-6"></v-divider>
+            <v-divider class="mb-6" v-if="!isAdultStudy"></v-divider>
 
             <!-- Child Information Section -->
-            <div class="mb-6">
+            <div class="mb-6" v-if="!isAdultStudy">
               <div class="text-caption font-weight-bold text-uppercase text-muted mb-3 px-1">Child Information</div>
               <v-row dense>
                 <template v-for="(item, i) in $childInfo" :key="i">
@@ -531,12 +612,23 @@
               </v-row>
             </div>
 
-            <!-- Sensitive & Medical Info Section -->
-            <div class="mb-4">
+            <!-- Sensitive & Medical Info Section (child studies) -->
+            <div class="mb-4" v-if="!isAdultStudy">
               <div class="text-caption font-weight-bold text-uppercase text-muted mb-3 px-1">Sensitive & Medical Info</div>
               <v-row dense>
                 <v-col cols="12" sm="6" md="4" v-for="(item, i) in $childSensitiveInfo" :key="'s' + i">
                   <v-checkbox v-model="editedChild[item.field]" :label="item.label"
+                    density="compact" hide-details class="mb-4" color="primary"></v-checkbox>
+                </v-col>
+              </v-row>
+            </div>
+
+            <!-- Health & Screening Info Section (adult studies) -->
+            <div class="mb-4" v-if="isAdultStudy">
+              <div class="text-caption font-weight-bold text-uppercase text-muted mb-3 px-1">Health & Screening Info</div>
+              <v-row dense>
+                <v-col cols="12" sm="6" md="4" v-for="(item, i) in $childSensitiveInfo" :key="'a' + i">
+                  <v-checkbox v-model="editedFamily[item.field]" :label="item.label"
                     density="compact" hide-details class="mb-4" color="primary"></v-checkbox>
                 </v-col>
               </v-row>
@@ -709,6 +801,8 @@ export default {
       validUnified: true,
       validAddChild: true,
       historyTab: 'timeline',
+      contactMethodOptions: ["Email", "Phone call", "Text message", "Other"],
+      contactTimeOptions: ["Morning (9am-11am)", "Afternoon (12pm-3pm)", "Evening (3pm-6pm)"],
       studies: [],
       activeAgeGroup: null,
       selectedStudy: {
@@ -763,6 +857,11 @@ export default {
       deleteDialog: false,
       isDeletingTimelineSchedule: false,
       scheduleToDelete: null,
+      editedContactMethods: [],
+      editedContactTimes: [],
+      showSecondaryEditContact: false,
+      dobMenuPrimaryEdit: false,
+      dobPickerPrimaryEdit: null,
       childNoteSaving: false,
       _childNoteTimer: null,
       dobMenuEdit: false,
@@ -1175,6 +1274,22 @@ export default {
             minAge,
             maxAge,
           };
+
+          if (this.selectedStudy.ASDParticipant === "Exclude") this.lastEligibleChildQuery.ASDParticipant = 0;
+          else if (this.selectedStudy.ASDParticipant === "Only") this.lastEligibleChildQuery.ASDParticipant = 1;
+
+          if (this.selectedStudy.PrematureParticipant === "Exclude") this.lastEligibleChildQuery.PrematureParticipant = 0;
+          else if (this.selectedStudy.PrematureParticipant === "Only") this.lastEligibleChildQuery.PrematureParticipant = 1;
+
+          if (this.selectedStudy.IllParticipant === "Exclude") this.lastEligibleChildQuery.IllParticipant = 0;
+          else if (this.selectedStudy.IllParticipant === "Only") this.lastEligibleChildQuery.IllParticipant = 1;
+
+          if (this.selectedStudy.VisionLossParticipant === "Exclude") this.lastEligibleChildQuery.VisionLossParticipant = 0;
+          else if (this.selectedStudy.VisionLossParticipant === "Only") this.lastEligibleChildQuery.VisionLossParticipant = 1;
+
+          if (this.selectedStudy.HearingLossParticipant === "Exclude") this.lastEligibleChildQuery.HearingLossParticipant = 0;
+          else if (this.selectedStudy.HearingLossParticipant === "Only") this.lastEligibleChildQuery.HearingLossParticipant = 1;
+
           await this.loadEligibleAdultFamilyPage(0, { showReminder: true });
         } catch (error) {
           if (error.response?.status !== 401) console.error(error);
@@ -1282,9 +1397,17 @@ export default {
       this.editedIndex = this.Children.indexOf(this.currentChild);
       if (this.currentFamily) {
         this.editedFamily = Object.assign({}, this.currentFamily);
+        const rawMethods = this.editedFamily.PreferredContactMethods;
+        this.editedContactMethods = rawMethods
+          ? (Array.isArray(rawMethods) ? [...rawMethods] : (() => { try { return JSON.parse(rawMethods) || []; } catch { return []; } })())
+          : [];
+        const rawTime = this.editedFamily.PreferredContactTime;
+        this.editedContactTimes = rawTime
+          ? rawTime.split(',').map(s => s.trim()).filter(Boolean)
+          : [];
+        this.showSecondaryEditContact = !!(this.editedFamily.NameSecondary || this.editedFamily.LanguageSecondary || this.editedFamily.RaceSecondary);
       }
       this.editedChild = Object.assign({}, this.currentChild);
-      // Format DoB for date input
       if (this.editedChild.DoB) {
         this.editedChild.DoB = moment(this.editedChild.DoB).format("YYYY-MM-DD");
       }
@@ -1343,26 +1466,28 @@ export default {
 
       if (validationResults) {
         try {
-          // Save family
+          // Serialize contact prefs before saving
+          this.editedFamily.PreferredContactMethods = JSON.stringify(this.editedContactMethods);
+          this.editedFamily.PreferredContactTime = this.editedContactTimes.join(', ');
           this.editedFamily.UpdatedBy = this.store.userID;
           await family.update(this.editedFamily);
-          this.currentChild.Family = this.editedFamily;
+          Object.assign(this.currentFamily, this.editedFamily);
+          if (this.currentChild) this.currentChild.Family = this.editedFamily;
 
-          // Sanitize DoB before saving
-          this.editedChild.DoB = this.normalizeDob(this.editedChild.DoB);
-          this.editedChild.Age = this.editedChild.DoB
-            ? Math.floor((new Date() - new Date(this.editedChild.DoB)) / (24 * 3600 * 1000))
-            : null;
-          await child.update(this.editedChild);
+          if (!this.isAdultStudy) {
+            this.editedChild.DoB = this.normalizeDob(this.editedChild.DoB);
+            this.editedChild.Age = this.editedChild.DoB
+              ? Math.floor((new Date() - new Date(this.editedChild.DoB)) / (24 * 3600 * 1000))
+              : null;
+            await child.update(this.editedChild);
 
-          if (this.editedIndex >= 0) {
-            // Update child but preserve family reference
-            const familyRef = this.editedFamily;
-            Object.assign(this.Children[this.editedIndex], this.editedChild);
-            this.Children[this.editedIndex].Family = familyRef;
+            if (this.editedIndex >= 0) {
+              const familyRef = this.editedFamily;
+              Object.assign(this.Children[this.editedIndex], this.editedChild);
+              this.Children[this.editedIndex].Family = familyRef;
+            }
           }
 
-          console.log("Family and Child info updated!");
           if (this.$refs.formUnified) this.$refs.formUnified.resetValidation();
           this.closeUnifiedEdit();
         } catch (error) {
@@ -1633,6 +1758,69 @@ export default {
           console.error('Failed to save child note:', e);
         }
       }, 800);
+    },
+
+    toggleEditContactMethod(method) {
+      const i = this.editedContactMethods.indexOf(method);
+      if (i >= 0) this.editedContactMethods.splice(i, 1);
+      else this.editedContactMethods.push(method);
+    },
+
+    toggleEditContactTime(time) {
+      const i = this.editedContactTimes.indexOf(time);
+      if (i >= 0) this.editedContactTimes.splice(i, 1);
+      else this.editedContactTimes.push(time);
+    },
+
+    onDobPickerPrimaryEdit(date) {
+      if (!date) return;
+      const d = new Date(date);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      this.editedFamily.DoBPrimary = `${yyyy}-${mm}-${dd}`;
+      this.dobMenuPrimaryEdit = false;
+    },
+
+    _parsedContactMethods() {
+      const raw = this.currentFamily?.PreferredContactMethods;
+      if (!raw) return [];
+      if (Array.isArray(raw)) return raw;
+      try { return JSON.parse(raw); } catch { return []; }
+    },
+
+    _parsedContactTimes() {
+      const raw = this.currentFamily?.PreferredContactTime;
+      if (!raw) return [];
+      return raw.split(",").map(s => s.trim()).filter(Boolean);
+    },
+
+    isContactMethodSelected(method) {
+      return this._parsedContactMethods().includes(method);
+    },
+
+    isContactTimeSelected(time) {
+      return this._parsedContactTimes().includes(time);
+    },
+
+    async toggleContactMethod(method) {
+      if (!this.currentFamily?.id) return;
+      const current = this._parsedContactMethods();
+      const updated = current.includes(method)
+        ? current.filter(m => m !== method)
+        : [...current, method];
+      this.currentFamily.PreferredContactMethods = JSON.stringify(updated);
+      await family.update({ id: this.currentFamily.id, PreferredContactMethods: this.currentFamily.PreferredContactMethods });
+    },
+
+    async toggleContactTime(time) {
+      if (!this.currentFamily?.id) return;
+      const current = this._parsedContactTimes();
+      const updated = current.includes(time)
+        ? current.filter(t => t !== time)
+        : [...current, time];
+      this.currentFamily.PreferredContactTime = updated.join(", ");
+      await family.update({ id: this.currentFamily.id, PreferredContactTime: this.currentFamily.PreferredContactTime });
     },
 
     async saveNotes(newNotes) {

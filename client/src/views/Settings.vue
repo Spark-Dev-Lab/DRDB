@@ -1172,6 +1172,7 @@ import TestingRooms from "@/components/TestingRooms.vue";
 import ConfirmDlg from "@/components/ConfirmDialog.vue";
 import moment from "moment";
 import { useMainStore } from "@/stores/mainStore";
+import { isIntakeForm, parseIntakeFormRows } from "@/utils/intakeFormParser";
 
 export default {
   components: { TestingRooms, ConfirmDlg },
@@ -1221,6 +1222,7 @@ export default {
         staleScheduleDays: 13,
       },
       inputFile: undefined,
+      uploadFileType: null,
       uploadFile: null,
       importReport: "",
       loadingStatus: false,
@@ -1905,24 +1907,36 @@ export default {
             var workbook = XLSX.read(data, { type: "array" });
             let sheetName = workbook.SheetNames[0];
             let worksheet = workbook.Sheets[sheetName];
-            var newParticipants = XLSX.utils.sheet_to_json(worksheet);
-            newParticipants.forEach((participant) => {
-              participant.DoB = moment(participant.DoB, "DD/MM/YYYY").toDate();
-              if (!participant.Name)
-                participant.Name = participant.Child_Last_Name
-                  ? participant.Child_First_Name + " " + participant.Child_Last_Name
-                  : participant.Child_First_Name;
-              participant.Name = (participant.Name || "")
-                .replace(/undefined /g, "")
-                .replace(/ undefined/g, "");
-              if (participant.Phone)
-                participant.Phone = participant.Phone.replace(/-/g, "");
-              if (participant.CellPhone)
-                participant.CellPhone = participant.CellPhone.replace(/-/g, "");
-              participant.Age = moment().diff(participant.DoB, "days");
-              participant.DoB = moment(participant.DoB).format("YYYY-MM-DD");
-            });
-            this.uploadFile = newParticipants;
+
+            // Read as 2D array to preserve duplicate column names
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+
+            if (isIntakeForm(rows[0])) {
+              // Oberlin Community Contact List intake form
+              this.uploadFile = parseIntakeFormRows(rows);
+              this.uploadFileType = "intake";
+            } else {
+              // Legacy DRDB spreadsheet format
+              const newParticipants = XLSX.utils.sheet_to_json(worksheet);
+              newParticipants.forEach((participant) => {
+                participant.DoB = moment(participant.DoB, "DD/MM/YYYY").toDate();
+                if (!participant.Name)
+                  participant.Name = participant.Child_Last_Name
+                    ? participant.Child_First_Name + " " + participant.Child_Last_Name
+                    : participant.Child_First_Name;
+                participant.Name = (participant.Name || "")
+                  .replace(/undefined /g, "")
+                  .replace(/ undefined/g, "");
+                if (participant.Phone)
+                  participant.Phone = participant.Phone.replace(/-/g, "");
+                if (participant.CellPhone)
+                  participant.CellPhone = participant.CellPhone.replace(/-/g, "");
+                participant.Age = moment().diff(participant.DoB, "days");
+                participant.DoB = moment(participant.DoB).format("YYYY-MM-DD");
+              });
+              this.uploadFile = newParticipants;
+              this.uploadFileType = "legacy";
+            }
           } catch (err) {
             this.$refs.confirmD.open(
               "Error",
@@ -1938,8 +1952,15 @@ export default {
       if (this.uploadFile) {
         this.loadingStatus = true;
         try {
-          const importResults = await family.batchImport(this.uploadFile);
-          this.importReport = this.importOutput(importResults.data);
+          let importResults;
+          if (this.uploadFileType === "intake") {
+            const response = await family.importIntakeForms(this.uploadFile);
+            importResults = response.data;
+          } else {
+            const response = await family.batchImport(this.uploadFile);
+            importResults = response.data;
+          }
+          this.importReport = this.importOutput(importResults);
           this.dialogImport = true;
         } catch (error) {
           this.$refs.confirmD.open(
@@ -1949,6 +1970,7 @@ export default {
           );
         }
         this.uploadFile = null;
+        this.uploadFileType = null;
       }
       this.loadingStatus = false;
     },
