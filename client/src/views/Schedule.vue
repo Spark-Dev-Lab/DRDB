@@ -1191,7 +1191,7 @@ export default {
         this.Children = eligibleChildren;
         await this.activateCurrentChild(this.Children[0], { showReminder });
       } else {
-        await this.$refs.confirmD.open('No Results', 'No child is eligible for the selected study. :(', { color: 'warning', noconfirm: true });
+        await this.$refs.confirmD.open('No Results', 'No individual is eligible for the selected study. :(', { color: 'warning', noconfirm: true });
         this.page = 0;
         this.Children = [];
         this.currentChild = Object.assign({}, this.defaultItem);

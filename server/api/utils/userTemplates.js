@@ -21,13 +21,15 @@ function buildWelcomeEmail(name, email, role, password) {
 
   return {
     to: name + " <" + email + ">",
-    subject: "Your user account has been created!",
+    subject: "Your ObCRC (Oberlin Community Registry) user account has been created!",
     htmlBody:
       "<p>Hello " + firstName + ",</p> " +
-      "<p>Welcome to the developmental research management system!<br>" +
+      "<p>Welcome to the ObCRC (Oberlin Community Registry) management system!<br>" +
       "Your role is <b>" + role + "</b>, and your temporary password is <b><em>" + password + "</em></b>. " +
-      "Please login with your email and temporary password at <a href=" + config.URL + ">" + config.URL + "</a> to set your password" + config.otherRequirement + "." +
-      "<br><b>If you're the lab manager, please update your lab email template in the Settings page.</p> " +
+      "Please log in with your email and temporary password at <a href=\"" + config.URL + "\">" + config.URL + "</a> to set a new password. " +
+      "<em>Note: You may be unable to access this link unless you are using campus Wi-Fi.</em>" +
+      config.otherRequirement +
+      "<br><b>If your role is PI, please update your lab email template in the Settings page.</b></p> " +
       "<p>" + MANUAL_LINK + "<br>" + GOOGLE_SETUP_LINK + "</p>" +
       "<p> </p>" +
       "<p>Thank you! <br>" +
@@ -44,7 +46,7 @@ function buildPasswordChangedEmail(name, email) {
 
   return {
     to: name + " <" + email + ">",
-    subject: "Your login password is updated.",
+    subject: "Your ObCRC (Oberlin Community Registry) login password is updated.",
     htmlBody:
       "<p>Hello " + firstName + ",</p> " +
       "<p>Your login password has recently been changed. <br>" +

@@ -528,7 +528,7 @@
             <div class="d-flex align-center mb-1">
               <v-switch
                 v-model="labSettingsConfig.autoCancellation"
-                label="Auto-Cancel Unresponsive Families"
+                label="Auto-Cancel Unresponsive Households"
                 color="primary"
                 hide-details
                 density="compact"
@@ -2098,10 +2098,10 @@ export default {
       var alertText =
         "<strong>Please copy the following information for your record.</strong><br><strong>" +
         importResults.nOfAdded +
-        "</strong> families were imported.<br>";
+        "</strong> households were imported.<br>";
       if (importResults.doubleCheckList && importResults.doubleCheckList.length > 0) {
         alertText +=
-          "<br><strong>Check if these families have duplicated child records. They probably just have twins.</strong><br>";
+          "<br><strong>Check if these households have duplicated individual records. They may include multiple individuals from the same household.</strong><br>";
         importResults.doubleCheckList.forEach((fam) => {
           alertText +=
             " - <strong>Household ID</strong>: " +
@@ -2115,15 +2115,15 @@ export default {
         alertText +=
           "<br><strong>There are " +
           importResults.nOfSkip +
-          " children not being imported because they are already in the database:</strong><br>";
-        importResults.skipList.forEach((child) => {
+          " individuals not being imported because they are already in the database:</strong><br>";
+        importResults.skipList.forEach((individual) => {
           alertText +=
-            " - <strong>Child name</strong>: " +
-            child.Name +
+            " - <strong>Individual name</strong>: " +
+            individual.Name +
             ", <strong>DoB</strong>: " +
-            child.DoB +
+            individual.DoB +
             ", <strong>Family email</strong>: " +
-            child.Email +
+            individual.Email +
             "<br>";
         });
       }
