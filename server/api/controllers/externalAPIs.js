@@ -10,6 +10,10 @@ function resolveRedirectUri(req, redirectUris = []) {
   if (!Array.isArray(redirectUris) || redirectUris.length === 0) return null;
 
   const normalize = (value) => (value || "").trim().replace(/\/$/, "");
+  const toCallbackUri = (value) => {
+    const normalized = normalize(value);
+    return normalized ? `${normalized}/oauth/callback` : null;
+  };
   const parseUrlSafe = (value) => {
     try {
       return new URL(value);
@@ -46,12 +50,52 @@ function resolveRedirectUri(req, redirectUris = []) {
     }
   };
 
+  // 1) Explicit override for environments that require fixed OAuth redirect URI.
+  const explicitRedirectUri = normalize(process.env.GOOGLE_REDIRECT_URI || "");
+  if (explicitRedirectUri) {
+    const exact = redirectUris.find((uri) => normalize(uri) === explicitRedirectUri);
+    if (exact) return exact;
+  }
+
+  const normalizedAuthorizedMap = new Map(
+    redirectUris.map((uri) => [normalize(uri), uri])
+  );
+  const localhostAuthorized = redirectUris.find((uri) => {
+    const parsed = parseUrlSafe(uri);
+    return parsed && isLocalHostName(parsed.hostname);
+  });
+
+  // Google can reject private-IP redirects with invalid_request. If localhost is
+  // also authorized, prefer it consistently for both URL generation and token exchange.
+  const preferLocalhostForPrivate = (uri) => {
+    if (!uri) return uri;
+    if (isPrivateIpUri(uri) && localhostAuthorized) return localhostAuthorized;
+    return uri;
+  };
+
+  // 2) Stable environment-based selection so auth URL generation and token
+  // exchange pick the same URI even if request host/origin differ.
+  const envCandidates = [];
+  const appUrlOrigin = parseOrigin(process.env.APP_URL);
+  if (appUrlOrigin) envCandidates.push(toCallbackUri(appUrlOrigin));
+
+  const frontendOrigins = (process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((value) => parseOrigin(value))
+    .filter(Boolean);
+  frontendOrigins.forEach((origin) => envCandidates.push(toCallbackUri(origin)));
+
+  for (const candidate of envCandidates) {
+    if (!candidate) continue;
+    const resolved = normalizedAuthorizedMap.get(normalize(candidate));
+    if (resolved) return preferLocalhostForPrivate(resolved);
+  }
+
   const forwardedProto = (req.get("x-forwarded-proto") || "").split(",")[0].trim();
   const forwardedHost = (req.get("x-forwarded-host") || "").split(",")[0].trim();
   const proto = forwardedProto || req.protocol || "http";
   const host = forwardedHost || req.get("host");
   const originHeader = parseOrigin(req.get("origin"));
-  const appUrlOrigin = parseOrigin(process.env.APP_URL);
 
   const originCandidates = [];
   if (originHeader) originCandidates.push(originHeader);
@@ -65,27 +109,17 @@ function resolveRedirectUri(req, redirectUris = []) {
     candidates.push(`${normalizedOrigin}/oauth/callback/`);
   });
 
-  const localhostAuthorized = redirectUris.find((uri) => {
-    const parsed = parseUrlSafe(uri);
-    return parsed && isLocalHostName(parsed.hostname);
-  });
-
   const matched = candidates.find((uri) => redirectUris.includes(uri));
   if (matched) {
-    if (isPrivateIpUri(matched) && localhostAuthorized) return localhostAuthorized;
-    return matched;
+    return preferLocalhostForPrivate(matched);
   }
 
-  const normalizedAuthorizedMap = new Map(
-    redirectUris.map((uri) => [normalize(uri), uri])
-  );
   const normalizedCandidateMatch = candidates.find((uri) =>
     normalizedAuthorizedMap.has(normalize(uri))
   );
   if (normalizedCandidateMatch) {
     const resolved = normalizedAuthorizedMap.get(normalize(normalizedCandidateMatch));
-    if (isPrivateIpUri(resolved) && localhostAuthorized) return localhostAuthorized;
-    return resolved;
+    return preferLocalhostForPrivate(resolved);
   }
 
   const publicFallback = redirectUris.find(
@@ -94,7 +128,12 @@ function resolveRedirectUri(req, redirectUris = []) {
 
   const privateFallback = redirectUris.find((uri) => isPrivateIpUri(uri));
 
-  return publicFallback || localhostAuthorized || privateFallback || redirectUris[0];
+  return (
+    preferLocalhostForPrivate(publicFallback) ||
+    preferLocalhostForPrivate(privateFallback) ||
+    localhostAuthorized ||
+    redirectUris[0]
+  );
 }
 
 async function resolveGmailAddress(gmailClient) {
@@ -321,6 +360,8 @@ exports.googleEmail = asyncHandler(async (req, res) => {
   let labName = null;
   let adminEmailConfigured = false;
   let adminEmailFetchError = false;
+  let labEmailFetchError = false;
+  let profileError = null;
 
   // ── Lab email profile ─────────────────────────────────────────────
   try {
@@ -351,6 +392,10 @@ exports.googleEmail = asyncHandler(async (req, res) => {
           where: { id: labId },
         });
       }
+    } else {
+      labEmailFetchError = true;
+      profileError =
+        "Lab Google account is not connected for this lab. Please run Setup Google Account.";
     }
 
     // Fallback: If Gmail retrieval fails or token is missing, fetch from database to keep UI consistent
@@ -363,6 +408,17 @@ exports.googleEmail = asyncHandler(async (req, res) => {
 
   } catch (error) {
     console.error("error in googleEmail lab profile:", error);
+    labEmailFetchError = true;
+
+    const detail =
+      error?.response?.data?.error_description ||
+      error?.response?.data?.error ||
+      error?.message ||
+      "unknown error";
+    profileError =
+      `Lab Google account token is invalid for this lab (${detail}). ` +
+      "Please reconnect using Setup Google Account.";
+
     // Even on error, try to fetch from database to show current status
     const currentLab = await model.lab.findByPk(labId);
     if (currentLab && currentLab.Email) {
@@ -408,6 +464,8 @@ exports.googleEmail = asyncHandler(async (req, res) => {
     labEmail: labEmail,
     adminEmail: adminEmail,
     labName: labName,
+    error: profileError,
+    labEmailFetchError: labEmailFetchError,
     adminEmailConfigured: adminEmailConfigured,
     adminEmailFetchError: adminEmailFetchError
   });

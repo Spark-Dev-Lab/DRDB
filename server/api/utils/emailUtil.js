@@ -69,10 +69,11 @@ async function getDefaultSendAsEmail(gmailClient) {
  * @param {string} options.htmlBody - HTML body of the email
  * @returns {Promise} Gmail API send result
  */
-async function sendAdminEmail({ to, cc, bcc, subject, htmlBody }) {
+async function sendAdminEmail({ to, cc, bcc, subject, htmlBody, fromName }) {
   const adminGmail = await getAdminGmailClient();
   const adminEmail = await getDefaultSendAsEmail(adminGmail);
-  const from = `Oberlin Community Research Contact Registry <${adminEmail}>`;
+  const senderDisplayName = fromName || "DRDB Notifications";
+  const from = `${senderDisplayName} <${adminEmail}>`;
 
   const raw = encodeMessage({ to, from, cc, bcc, subject, body: htmlBody });
 

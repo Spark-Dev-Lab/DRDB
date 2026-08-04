@@ -26,8 +26,18 @@ module.exports = asyncHandler(async (req, res, next) => {
     req.oAuth2Client = oAuth2Client;
     next();
   } catch (error) {
+    const lab = req.body.lab || req.query.lab || req.params.lab;
+    const description =
+      error?.response?.data?.error_description ||
+      error?.response?.data?.error ||
+      error?.message ||
+      "Unknown OAuth error";
+
     return res.status(401).send({
-      message: "Google Authentication Failed.",
+      message:
+        `Google Authentication Failed for lab ${lab}. ` +
+        "Please reconnect the Lab Google account in Settings.",
+      details: description,
     });
   }
 });

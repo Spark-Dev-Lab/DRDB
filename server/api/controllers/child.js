@@ -93,11 +93,21 @@ function isChildEligibleForSlimSearch(childRecord, eligibility) {
   const { ageGroups, prerequisiteStudyIds, exclusionStudyIds } = eligibility;
 
   if (ageGroups.length > 0) {
-    if (!childRecord.DoB) {
+    let ageInDays = null;
+
+    if (childRecord.DoB) {
+      ageInDays = Math.floor(
+        (Date.now() - new Date(childRecord.DoB).getTime()) / (24 * 3600 * 1000)
+      );
+    } else if (Number.isFinite(Number(childRecord.Age))) {
+      // Backward compatibility for legacy records where DoB is blank but Age is populated in days.
+      ageInDays = Number(childRecord.Age);
+    }
+
+    if (!Number.isFinite(ageInDays)) {
       return false;
     }
 
-    const ageInDays = Math.floor((Date.now() - new Date(childRecord.DoB).getTime()) / (24 * 3600 * 1000));
     const isInAnyAgeGroup = ageGroups.some((group) => {
       const minAge = Number(group.MinAge);
       const maxAge = Number(group.MaxAge);

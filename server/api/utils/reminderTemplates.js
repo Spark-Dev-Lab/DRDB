@@ -74,9 +74,15 @@ function PhoneFormated(Phone) {
  * Returns { from, to, subject, body }.
  */
 function buildFamilyReminderBody(schedule) {
-  const emailSubject =
-    "Reminder for your study appointment with " +
-    childNames(schedule.Appointments);
+  const firstContext = getParticipantContext({
+    appointment: schedule.Appointments[0],
+    schedule,
+  });
+  const isAdultParticipant = firstContext.participantType === "Adult";
+  const participantNames = childNames(schedule.Appointments);
+  const emailSubject = isAdultParticipant
+    ? "Reminder for your study appointment"
+    : "Reminder for your study appointment with " + participantNames;
 
   if (!schedule.Family.NamePrimary) {
     schedule.Family.NamePrimary = "";
@@ -96,8 +102,7 @@ function buildFamilyReminderBody(schedule) {
       ",</p>" +
       "<p>Hope you are doing great! This is a reminder for your visit to " +
       schedule.Appointments[0].Study.Lab.LabName +
-      " with <b>" +
-      childNames(schedule.Appointments) +
+      (isAdultParticipant ? " for <b>you" : " with <b>" + participantNames) +
       moment(schedule.AppointmentTime).format(" [tomorrow at] h:mma") +
       "</b>.</p>" +
       schedule.Appointments[0].Study.Lab.TransportationInstructions;
@@ -108,11 +113,11 @@ function buildFamilyReminderBody(schedule) {
       ",</p>" +
       "<p>Hope you are doing great! This is " +
       schedule.Appointments[0].Study.Lab.LabName +
-      ". Just a reminder that you and " +
-      childNames(schedule.Appointments) +
-      " will participate in our online study " +
+      ". Just a reminder that <strong>" +
+      (isAdultParticipant ? "you" : "you and " + participantNames) +
+      " will participate in our online study" +
       moment(schedule.AppointmentTime).format(" [tomorrow at] h:mma") +
-      "</b>.</p>";
+      "</strong>.</p>";
   }
 
   var ZoomLink = "Zoom Link not available.";
@@ -135,7 +140,11 @@ function buildFamilyReminderBody(schedule) {
     }
   }
 
-  const participantNames = childNames(schedule.Appointments);
+  const pronouns = {
+    subjectPronoun: firstContext.subjectPronoun,
+    objectPronoun: firstContext.objectPronoun,
+    possessivePronoun: firstContext.possessivePronoun,
+  };
 
   var body = schedule.Appointments[0].Study.ReminderTemplate.replace(
     /\${{ZoomLink}}/g,
@@ -145,24 +154,33 @@ function buildFamilyReminderBody(schedule) {
   body = renderParticipantTemplate(body, {
     participantName: participantNames,
     primaryContactName: schedule.Family?.NamePrimary || "",
+    ...pronouns,
   });
 
   if (schedule.Appointments[0].Study.StudyType === "Online") {
-    body =
-      body +
-      "<p>If this study use Zoom for online study, you can download Zoom for your computer here: <a href='https://zoom.us/download'>Download Link</a></p>" +
-      "<p><a href='https://mcmasteru365-my.sharepoint.com/:p:/g/personal/xiaon8_mcmaster_ca/EdhORdZeCwlPn-X54WquFz8Boegr1YpaNy9mzlW_wJ8ZjQ?e=hvDNGr'>CLICK HERE</a> to learn a few tips to setup online study with your child.</p>";
+    body +=
+      "<p>If this study use Zoom for online study, you can download Zoom for your computer here: <a href='https://zoom.us/download'>Download Link</a></p>";
+
+    if (!isAdultParticipant) {
+      body +=
+        "<p><a href='https://mcmasteru365-my.sharepoint.com/:p:/g/personal/xiaon8_mcmaster_ca/EdhORdZeCwlPn-X54WquFz8Boegr1YpaNy9mzlW_wJ8ZjQ?e=hvDNGr'>CLICK HERE</a> to learn a few tips to setup online study with your child.</p>";
+    }
   }
 
+  const signerRole =
+    schedule.Personnel.Role === "PI"
+      ? "Lab Director"
+      : schedule.Personnel.Role;
+
   const closing =
-    schedule.Appointments[0].Study.Lab.EmailClosing +
     "<p>Best,</p><p>" +
     schedule.Personnel.Name +
     "</p><p>" +
-    schedule.Personnel.Role +
+    signerRole +
     "</p><p>" +
     schedule.Appointments[0].Study.Lab.LabName +
-    "</p>";
+    "</p>" +
+    schedule.Appointments[0].Study.Lab.EmailClosing;
 
   return {
     from:
@@ -181,6 +199,12 @@ function buildFamilyReminderBody(schedule) {
  * Returns { to, subject, body }.
  */
 function buildManualReminderBody(schedule) {
+  const firstContext = getParticipantContext({
+    appointment: schedule.Appointments[0],
+    schedule,
+  });
+  const isAdultParticipant = firstContext.participantType === "Adult";
+
   if (!schedule.Family.NamePrimary) {
     schedule.Family.NamePrimary = "";
   }
@@ -199,16 +223,17 @@ function buildManualReminderBody(schedule) {
     ",</p>" +
     "<p>" +
     parentName +
-    " and their child(ren), " +
-    childNames(schedule.Appointments) +
-    " are coming for a study tomorrow, " +
+    (isAdultParticipant
+      ? " has an upcoming study tomorrow, "
+      : " and their child(ren), " + childNames(schedule.Appointments) + " are coming for a study tomorrow, ") +
     moment(schedule.AppointmentTime).format(
       " [on] dddd [(]MMM Do[)] [at] h:mma"
     ) +
     "</p><p>" +
     "However, there is no email in the system to remind them over email. Please give them a call ASAP.</p>" +
     "<p>Thank you!</p><p>" +
-    "Oberlin Community Research Contact Registry</p>";
+    (schedule.Appointments[0].Study.Lab.LabName || "Lab Team") +
+    "</p>";
 
   return {
     to:

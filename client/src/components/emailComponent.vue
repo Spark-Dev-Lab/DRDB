@@ -120,14 +120,12 @@ export default {
     },
 
     pronounsFor(appointment) {
-      const sex = appointment?.Child?.Sex;
-      if (sex === "F") {
-        return { subject: "she", object: "her", possessive: "her" };
-      }
-      if (sex === "M") {
-        return { subject: "he", object: "him", possessive: "his" };
-      }
-      return { subject: "they", object: "them", possessive: "their" };
+      const context = this.participantContextFor(appointment);
+      return {
+        subject: context.subjectPronoun || "they",
+        object: context.objectPronoun || "them",
+        possessive: context.possessivePronoun || "their",
+      };
     },
 
     applyParticipantTemplate(body, appointment) {
@@ -197,24 +195,25 @@ export default {
       const location = this.store.transportationInstructions;
       const name = this.store.name;
       const role = this.store.role;
+      const signerRole = role === "PI" ? "Lab Director" : role;
 
       const closing =
-        (this.store.emailClosing || "") +
         "<p>Best,<br>" +
         name +
         "<br>" +
-        role +
+        signerRole +
         "<br>" +
-        this.store.labName + "</p>";
+        this.store.labName + "</p>" +
+        (this.store.emailClosing || "");
 
       const TYclosing =
-        (this.store.tyEmailClosing || "") +
         "<p>Best,<br>" +
         name +
         "<br>" +
-        role +
+        signerRole +
         "<br>" +
-        this.store.labName + "</p>";
+        this.store.labName + "</p>" +
+        (this.store.tyEmailClosing || "");
 
       const studyInfo = this.emailStudyInfo();
       let emailObj = "";
@@ -276,7 +275,7 @@ export default {
               : "<p>Dear " + parentName + ",</p><p>We missed you and " + participantNames + " today. We hope everything is okay.</p><p>We understand that life can get busy and unpredictable sometimes. We're happy to reschedule your child's visit to our lab, if you're still interested in participation.</p><p>We would appreciate it if you could provide us with your availability by replying to this email. We will do our best to find a time that works for you and " + participantNames + ".</p>";
             break;
           case "Follow-up":
-            opening = "<p>Dear " + parentName + ",</p><p>This is " + this.store.labName + ". We hope this email finds you well!</p><p>We are writing to follow up with our previous email regarding inviting " + participantNames + " to participate in our study.</p><p>We would appreciate it if you could provide us with your availability by replying to this email. We will do our best to find a time that works for you" + (isAdultParticipant ? "." : " and " + participantNames + ".") + "</p>";
+              opening = "<p>Dear " + parentName + ",</p><p>This is " + this.store.labName + ". We hope this email finds you well!</p><p>We are writing to follow up with our previous email regarding inviting " + (isAdultParticipant ? "you" : participantNames) + " to participate in our study.</p><p>We would appreciate it if you could provide us with your availability by replying to this email. We will do our best to find a time that works for you" + (isAdultParticipant ? "." : " and " + participantNames + ".") + "</p>";
             break;
           case "ThankYou":
             opening = isAdultParticipant
@@ -330,7 +329,7 @@ export default {
                 : "<p>You can download Zoom for your computer here: <a href='https://zoom.us/download'>Download Link</a></p><p><a href='https://mcmasteru365-my.sharepoint.com/:p:/g/personal/xiaon8_mcmaster_ca/EdhORdZeCwlPn-X54WquFz8Boegr1YpaNy9mzlW_wJ8ZjQ?e=hvDNGr'>CLICK HERE</a> to learn a few tips to setup online study with your child.</p>";
             }
 
-            emailBody = emailBody.replace(/\${{childName}}/g, this.childNames());
+            emailBody = this.applyParticipantTemplate(emailBody, this.appointments[0]);
             emailBodyList.push(emailBody);
           }
           break;

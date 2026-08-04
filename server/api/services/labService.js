@@ -52,10 +52,10 @@ exports.createLab = async (labData) => {
       Description:
         "Study description should be a short summary of a study. So RAs can read it to parents during recruitment.",
       EmailTemplate:
-        "<p><strong style='background- color: rgb(254, 254, 254); '>${{childName}}&nbsp;</strong><span style='background - color: rgb(254, 254, 254); '>will be sitting on your lap and watch a short clip of videos on a screen in front of ${{him/her}}. To understand the development of neural system, ${{childName}} will be wearing a recording cap while watching the videos. We will use a camera to monitor ${{his/her}} attention status, which will help us determine the quality of recorded neural signals. The study will last for about 10 minutes.</span></p>",
+        "<p><strong>${{participantName}}</strong> will watch a short clip of videos on a screen in front of ${{him/her}}. To understand neural development, ${{participantName}} may wear a recording cap while watching the videos. We will use a camera to monitor ${{his/her}} attention status, which helps us determine the quality of recorded neural signals. The study will last about 10 minutes.</p>",
       ReminderTemplate:
-        "<p>Please enter a template for reminder email sent to parents for their upcoming study.</p>",
-      FollowUPEmailSnippet: "<p>As we ment.</p>",
+        "<p>This is a reminder that <strong>${{participantName}}</strong> is scheduled for an upcoming study with our lab.</p><p>If this is an online study, please use this link: ${{ZoomLink}}</p>",
+      FollowUPEmailSnippet: "<p>Thank you for participating with ${{participantName}} today. We appreciate your time and support.</p>",
       Completed: false,
       StudyType: "Behavioural",
       ASDParticipant: "Include",

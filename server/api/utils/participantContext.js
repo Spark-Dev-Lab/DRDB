@@ -19,6 +19,56 @@ function resolveChild({ child, appointment }) {
   return child || appointment?.Child || null;
 }
 
+function normalizeGenderIdentity(value) {
+  return (value || "").trim().toLowerCase();
+}
+
+function pronounsFromGenderIdentity(genderIdentity) {
+  const normalized = normalizeGenderIdentity(genderIdentity);
+
+  if (["woman", "female", "girl", "f"].includes(normalized)) {
+    return { subjectPronoun: "she", objectPronoun: "her", possessivePronoun: "her" };
+  }
+
+  if (["man", "male", "boy", "m"].includes(normalized)) {
+    return { subjectPronoun: "he", objectPronoun: "him", possessivePronoun: "his" };
+  }
+
+  if (
+    [
+      "non-binary",
+      "nonbinary",
+      "genderqueer",
+      "gender fluid",
+      "gender-fluid",
+      "agender",
+      "they/them",
+      "they",
+      "nb",
+      "x",
+    ].includes(normalized)
+  ) {
+    return { subjectPronoun: "they", objectPronoun: "them", possessivePronoun: "their" };
+  }
+
+  return null;
+}
+
+function pronounsFromParticipant({ participantType, family, child }) {
+  if (participantType === ParticipantTypes.ADULT) {
+    return (
+      pronounsFromGenderIdentity(family?.PrimaryGenderIdentity) ||
+      { subjectPronoun: "they", objectPronoun: "them", possessivePronoun: "their" }
+    );
+  }
+
+  return (
+    pronounsFromGenderIdentity(child?.Gender) ||
+    pronounsFromGenderIdentity(child?.Sex) ||
+    { subjectPronoun: "they", objectPronoun: "them", possessivePronoun: "their" }
+  );
+}
+
 /**
  * Resolve who is participating and who the primary contact is.
  *
@@ -48,6 +98,11 @@ function getParticipantContext({
     participantType === ParticipantTypes.ADULT
       ? resolvedFamily
       : resolvedChild;
+  const pronouns = pronounsFromParticipant({
+    participantType,
+    family: resolvedFamily,
+    child: resolvedChild,
+  });
 
   return {
     participant,
@@ -58,6 +113,7 @@ function getParticipantContext({
     primaryContact: resolvedFamily,
     primaryContactName: resolvedFamily?.NamePrimary || "",
     participantType,
+    ...pronouns,
   };
 }
 

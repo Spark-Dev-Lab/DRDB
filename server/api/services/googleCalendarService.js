@@ -15,6 +15,22 @@ google.options({
   },
 });
 
+function normalizeCalendarId(value) {
+  const raw = typeof value === "string" ? value.trim() : "";
+  return raw || "primary";
+}
+
+function shouldFallbackToPrimary(error) {
+  const code = error?.code || error?.response?.status;
+  if (code === 403 || code === 404) return true;
+
+  const reasons = error?.errors || error?.response?.data?.error?.errors || [];
+  return reasons.some((entry) => {
+    const reason = String(entry?.reason || "").toLowerCase();
+    return ["notfound", "forbidden", "calendarforbidden", "calendarnotfound"].includes(reason);
+  });
+}
+
 /**
  * Create a calendar event.
  *
@@ -24,6 +40,7 @@ google.options({
  */
 async function createEvent(oAuth2Client, event) {
   const calendar = google.calendar({ version: "v3", auth: oAuth2Client });
+  const targetCalendarId = normalizeCalendarId(event.calendarId);
 
   const tz = event.timeZone || config.timeZone;
 
@@ -37,12 +54,26 @@ async function createEvent(oAuth2Client, event) {
     timeZone: tz,
   };
 
-  const calEvent = await calendar.events.insert({
-    calendarId: event.calendarId,
-    resource: event,
-    sendUpdates: "all",
-    sendNotifications: true,
-  });
+  let calEvent;
+  try {
+    calEvent = await calendar.events.insert({
+      calendarId: targetCalendarId,
+      resource: event,
+      sendUpdates: "all",
+      sendNotifications: true,
+    });
+  } catch (error) {
+    if (targetCalendarId !== "primary" && shouldFallbackToPrimary(error)) {
+      calEvent = await calendar.events.insert({
+        calendarId: "primary",
+        resource: event,
+        sendUpdates: "all",
+        sendNotifications: true,
+      });
+    } else {
+      throw error;
+    }
+  }
 
   event.eventURL = calEvent.data.htmlLink;
   event.eventId = calEvent.data.id;
@@ -59,6 +90,7 @@ async function createEvent(oAuth2Client, event) {
  */
 async function updateEvent(oAuth2Client, event) {
   const calendar = google.calendar({ version: "v3", auth: oAuth2Client });
+  const targetCalendarId = normalizeCalendarId(event.calendarId);
 
   const tz = event.timeZone || config.timeZone;
 
@@ -72,13 +104,28 @@ async function updateEvent(oAuth2Client, event) {
     timeZone: tz,
   };
 
-  const calEvent = await calendar.events.patch({
-    calendarId: event.calendarId,
-    eventId: event.eventId,
-    resource: event,
-    sendUpdates: "all",
-    sendNotifications: true,
-  });
+  let calEvent;
+  try {
+    calEvent = await calendar.events.patch({
+      calendarId: targetCalendarId,
+      eventId: event.eventId,
+      resource: event,
+      sendUpdates: "all",
+      sendNotifications: true,
+    });
+  } catch (error) {
+    if (targetCalendarId !== "primary" && shouldFallbackToPrimary(error)) {
+      calEvent = await calendar.events.patch({
+        calendarId: "primary",
+        eventId: event.eventId,
+        resource: event,
+        sendUpdates: "all",
+        sendNotifications: true,
+      });
+    } else {
+      throw error;
+    }
+  }
 
   event.eventURL = calEvent.data.htmlLink;
   event.eventId = calEvent.data.id;

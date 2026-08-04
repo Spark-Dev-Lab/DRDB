@@ -711,7 +711,7 @@ export default {
       let calendarEvents = [];
       newSchedule.Appointments.forEach((app) => {
         const testingRoom = this.store.testingRooms.find(room => room.id === app.Study.FK_TestingRoom);
-        let calendarId = testingRoom ? testingRoom.calendarId : 'primary';
+        let calendarId = (testingRoom?.calendarId || '').trim() || 'primary';
         app.calendarId = calendarId;
 
         calendarEvents.push({
@@ -733,7 +733,8 @@ export default {
             this.addLog("Update Google Calendar Event", true, `Updated event: ${event.summary}`);
           } catch (error) {
             console.error(error);
-            this.addLog("Update Google Calendar Event", false, `Failed to update event: ${error.message}`);
+            const detail = error?.response?.data?.error || error?.response?.data?.message || error.message;
+            this.addLog("Update Google Calendar Event", false, `Failed to update event: ${detail}`);
           }
         } else {
           if (newSchedule.Status === 'Confirmed') {
@@ -744,7 +745,8 @@ export default {
               this.addLog("Create Google Calendar Event", true, `Created event: ${event.summary}`);
             } catch (error) {
               console.error(error);
-              this.addLog("Create Google Calendar Event", false, `Failed to create event: ${error.message}`);
+              const detail = error?.response?.data?.error || error?.response?.data?.message || error.message;
+              this.addLog("Create Google Calendar Event", false, `Failed to create event: ${detail}`);
             }
           }
         }
@@ -811,7 +813,7 @@ export default {
       let updatedCalendarEvents = [];
       updatedSchedule.Appointments.forEach((app) => {
         const testingRoom = this.store.testingRooms.find(room => room.id === app.Study.FK_TestingRoom);
-        let calendarId = testingRoom ? testingRoom.calendarId : 'primary';
+        let calendarId = (testingRoom?.calendarId || '').trim() || 'primary';
         app.calendarId = calendarId;
 
         updatedCalendarEvents.push({
@@ -833,7 +835,8 @@ export default {
             this.addLog("Update Google Calendar Event", true, `Updated event: ${event.summary}`);
           } catch (error) {
             console.error(error);
-            this.addLog("Update Google Calendar Event", false, `Failed to update event: ${error.message}`);
+            const detail = error?.response?.data?.error || error?.response?.data?.message || error.message;
+            this.addLog("Update Google Calendar Event", false, `Failed to update event: ${detail}`);
           }
         } else {
           if (updatedSchedule.Status === 'Confirmed') {
@@ -844,7 +847,8 @@ export default {
               this.addLog("Create Google Calendar Event", true, `Created event: ${event.summary}`);
             } catch (error) {
               console.error(error);
-              this.addLog("Create Google Calendar Event", false, `Failed to create event: ${error.message}`);
+              const detail = error?.response?.data?.error || error?.response?.data?.message || error.message;
+              this.addLog("Create Google Calendar Event", false, `Failed to create event: ${detail}`);
             }
           }
         }

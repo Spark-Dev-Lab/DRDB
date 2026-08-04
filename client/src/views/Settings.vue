@@ -2460,7 +2460,9 @@ export default {
       const profile = await externalAPIs.googleGetEmailAddress();
       if (profile.data) {
         this.emailSetupError = profile.data.error || null;
-        const hasLabEmail = !!profile.data.labEmail;
+        const hasLabEmail =
+          !!profile.data.labEmail &&
+          !profile.data.labEmailFetchError;
         const hasAdminEmail = !!profile.data.adminEmail;
         const hasAdminToken = !!profile.data.adminEmailConfigured;
 

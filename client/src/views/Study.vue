@@ -927,16 +927,22 @@
                         <div class="font-weight-bold mb-1">Available Keywords</div>
                         <div v-pre class="d-flex flex-wrap" style="gap: 4px 12px">
                           <span
-                            ><code>${{childName}}</code> — Child's first name</span
+                            ><code>${{participantName}}</code> — Participant's first name</span
                           >
                           <span
-                            ><code>${{he/she}}</code> — Pronoun (subject)</span
+                            ><code>${{primaryContactName}}</code> — Primary contact's first name</span
                           >
                           <span
-                            ><code>${{him/her}}</code> — Pronoun (object)</span
+                            ><code>${{childName}}</code> — Legacy alias for participant's first name</span
                           >
                           <span
-                            ><code>${{his/her}}</code> — Pronoun (possessive)</span
+                            ><code>${{he/she}}</code> — Participant pronoun (subject; defaults to they)</span
+                          >
+                          <span
+                            ><code>${{him/her}}</code> — Participant pronoun (object; defaults to them)</span
+                          >
+                          <span
+                            ><code>${{his/her}}</code> — Participant pronoun (possessive; defaults to their)</span
                           >
                           <span
                             ><code>${{ZoomLink}}</code> — Experimenter's Zoom link</span
@@ -999,16 +1005,22 @@
                         <div class="font-weight-bold mb-1">Available Keywords</div>
                         <div v-pre class="d-flex flex-wrap" style="gap: 4px 12px">
                           <span
-                            ><code>${{childName}}</code> — Child's first name</span
+                            ><code>${{participantName}}</code> — Participant's first name</span
                           >
                           <span
-                            ><code>${{he/she}}</code> — Pronoun (subject)</span
+                            ><code>${{primaryContactName}}</code> — Primary contact's first name</span
                           >
                           <span
-                            ><code>${{him/her}}</code> — Pronoun (object)</span
+                            ><code>${{childName}}</code> — Legacy alias for participant's first name</span
                           >
                           <span
-                            ><code>${{his/her}}</code> — Pronoun (possessive)</span
+                            ><code>${{he/she}}</code> — Participant pronoun (subject; defaults to they)</span
+                          >
+                          <span
+                            ><code>${{him/her}}</code> — Participant pronoun (object; defaults to them)</span
+                          >
+                          <span
+                            ><code>${{his/her}}</code> — Participant pronoun (possessive; defaults to their)</span
                           >
                           <span
                             ><code>${{ZoomLink}}</code> — Experimenter's Zoom link</span
@@ -1072,16 +1084,22 @@
                         <div class="font-weight-bold mb-1">Available Keywords</div>
                         <div v-pre class="d-flex flex-wrap" style="gap: 4px 12px">
                           <span
-                            ><code>${{childName}}</code> — Child's first name</span
+                            ><code>${{participantName}}</code> — Participant's first name</span
                           >
                           <span
-                            ><code>${{he/she}}</code> — Pronoun (subject)</span
+                            ><code>${{primaryContactName}}</code> — Primary contact's first name</span
                           >
                           <span
-                            ><code>${{him/her}}</code> — Pronoun (object)</span
+                            ><code>${{childName}}</code> — Legacy alias for participant's first name</span
                           >
                           <span
-                            ><code>${{his/her}}</code> — Pronoun (possessive)</span
+                            ><code>${{he/she}}</code> — Participant pronoun (subject; defaults to they)</span
+                          >
+                          <span
+                            ><code>${{him/her}}</code> — Participant pronoun (object; defaults to them)</span
+                          >
+                          <span
+                            ><code>${{his/her}}</code> — Participant pronoun (possessive; defaults to their)</span
                           >
                           <span
                             ><code>${{ZoomLink}}</code> — Experimenter's Zoom link</span
@@ -1647,16 +1665,22 @@
                           <div class="font-weight-bold mb-1">Available Keywords</div>
                           <div v-pre class="d-flex flex-wrap" style="gap: 4px 12px">
                             <span
-                              ><code>${{childName}}</code> — Child's first name</span
+                              ><code>${{participantName}}</code> — Participant's first name</span
                             >
                             <span
-                              ><code>${{he/she}}</code> — Pronoun (subject)</span
+                              ><code>${{primaryContactName}}</code> — Primary contact's first name</span
                             >
                             <span
-                              ><code>${{him/her}}</code> — Pronoun (object)</span
+                              ><code>${{childName}}</code> — Legacy alias for participant's first name</span
                             >
                             <span
-                              ><code>${{his/her}}</code> — Pronoun (possessive)</span
+                              ><code>${{he/she}}</code> — Participant pronoun (subject; defaults to they)</span
+                            >
+                            <span
+                              ><code>${{him/her}}</code> — Participant pronoun (object; defaults to them)</span
+                            >
+                            <span
+                              ><code>${{his/her}}</code> — Participant pronoun (possessive; defaults to their)</span
                             >
                             <span
                               ><code>${{ZoomLink}}</code> — Experimenter's Zoom
@@ -1682,16 +1706,22 @@
                           <div class="font-weight-bold mb-1">Available Keywords</div>
                           <div v-pre class="d-flex flex-wrap" style="gap: 4px 12px">
                             <span
-                              ><code>${{childName}}</code> — Child's first name</span
+                              ><code>${{participantName}}</code> — Participant's first name</span
                             >
                             <span
-                              ><code>${{he/she}}</code> — Pronoun (subject)</span
+                              ><code>${{primaryContactName}}</code> — Primary contact's first name</span
                             >
                             <span
-                              ><code>${{him/her}}</code> — Pronoun (object)</span
+                              ><code>${{childName}}</code> — Legacy alias for participant's first name</span
                             >
                             <span
-                              ><code>${{his/her}}</code> — Pronoun (possessive)</span
+                              ><code>${{he/she}}</code> — Participant pronoun (subject; defaults to they)</span
+                            >
+                            <span
+                              ><code>${{him/her}}</code> — Participant pronoun (object; defaults to them)</span
+                            >
+                            <span
+                              ><code>${{his/her}}</code> — Participant pronoun (possessive; defaults to their)</span
                             >
                             <span
                               ><code>${{ZoomLink}}</code> — Experimenter's Zoom
@@ -1717,16 +1747,22 @@
                           <div class="font-weight-bold mb-1">Available Keywords</div>
                           <div v-pre class="d-flex flex-wrap" style="gap: 4px 12px">
                             <span
-                              ><code>${{childName}}</code> — Child's first name</span
+                              ><code>${{participantName}}</code> — Participant's first name</span
                             >
                             <span
-                              ><code>${{he/she}}</code> — Pronoun (subject)</span
+                              ><code>${{primaryContactName}}</code> — Primary contact's first name</span
                             >
                             <span
-                              ><code>${{him/her}}</code> — Pronoun (object)</span
+                              ><code>${{childName}}</code> — Legacy alias for participant's first name</span
                             >
                             <span
-                              ><code>${{his/her}}</code> — Pronoun (possessive)</span
+                              ><code>${{he/she}}</code> — Participant pronoun (subject; defaults to they)</span
+                            >
+                            <span
+                              ><code>${{him/her}}</code> — Participant pronoun (object; defaults to them)</span
+                            >
+                            <span
+                              ><code>${{his/her}}</code> — Participant pronoun (possessive; defaults to their)</span
                             >
                             <span
                               ><code>${{ZoomLink}}</code> — Experimenter's Zoom
@@ -1847,6 +1883,7 @@ export default {
       emailTemplateTab: "phone",
       studyStatsLoaded: false,
       savingTemplates: false,
+      templateDefaultsMode: false,
       tab: "one",
       groupBy: "year",
       groupByOptions: [
@@ -2001,9 +2038,63 @@ export default {
   },
 
   methods: {
+    getTemplateDefaultsByParticipantType(participantType) {
+      if (participantType === "Adult") {
+        return {
+          EmailTemplate:
+            "<p>During this session, <strong>you</strong> will watch short video clips on a screen. To understand neural development, we may ask you to wear a recording cap while watching the videos. We will use a camera to monitor your attention, which helps us determine the quality of recorded neural signals. The study will last about 10 minutes.</p>",
+          ReminderTemplate:
+            "<p>This is a reminder that <strong>you</strong> are scheduled for an upcoming study with our lab.</p><p>If this is an online study, please use this link: ${{ZoomLink}}</p>",
+          FollowUPEmailSnippet:
+            "<p>Thank you for participating today. We appreciate your time and support.</p>",
+        };
+      }
+
+      return {
+        EmailTemplate:
+          "<p><strong>${{participantName}}</strong> will watch a short clip of videos on a screen in front of ${{him/her}}. To understand neural development, ${{participantName}} may wear a recording cap while watching the videos. We will use a camera to monitor ${{his/her}} attention status, which helps us determine the quality of recorded neural signals. The study will last about 10 minutes.</p>",
+        ReminderTemplate:
+          "<p>This is a reminder that <strong>${{participantName}}</strong> is scheduled for an upcoming study with our lab.</p><p>If this is an online study, please use this link: ${{ZoomLink}}</p>",
+        FollowUPEmailSnippet:
+          "<p>Thank you for participating with ${{participantName}} today. We appreciate your time and support.</p>",
+      };
+    },
+
+    canAutoReplaceTemplateField(fieldValue) {
+      const value = (fieldValue || "").trim();
+      if (!value) return true;
+
+      const childDefaults = this.getTemplateDefaultsByParticipantType("Child");
+      const adultDefaults = this.getTemplateDefaultsByParticipantType("Adult");
+
+      return [
+        childDefaults.EmailTemplate,
+        childDefaults.ReminderTemplate,
+        childDefaults.FollowUPEmailSnippet,
+        adultDefaults.EmailTemplate,
+        adultDefaults.ReminderTemplate,
+        adultDefaults.FollowUPEmailSnippet,
+      ].includes(value);
+    },
+
+    applyParticipantTypeTemplateDefaults(nextType) {
+      const defaults = this.getTemplateDefaultsByParticipantType(nextType);
+      if (this.canAutoReplaceTemplateField(this.editedStudy.EmailTemplate)) {
+        this.editedStudy.EmailTemplate = defaults.EmailTemplate;
+      }
+      if (this.canAutoReplaceTemplateField(this.editedStudy.ReminderTemplate)) {
+        this.editedStudy.ReminderTemplate = defaults.ReminderTemplate;
+      }
+      if (this.canAutoReplaceTemplateField(this.editedStudy.FollowUPEmailSnippet)) {
+        this.editedStudy.FollowUPEmailSnippet = defaults.FollowUPEmailSnippet;
+      }
+    },
+
     highlightKeywords(template) {
       const hl = (text) => `<span style="font-weight:700;color:#0D9488">${text}</span>`;
       let email = template;
+      email = email.replace(/\${{participantName}}/g, hl("Alex"));
+      email = email.replace(/\${{primaryContactName}}/g, hl("Jordan"));
       email = email.replace(/\${{childName}}/g, hl("Emma"));
       email = email.replace(/\${{he\/she}}/g, hl("she"));
       email = email.replace(/\${{him\/her}}/g, hl("her"));
@@ -2086,14 +2177,55 @@ export default {
 
     async optionChangedTestingRoom() {
       if (!this.currentStudy.id) return;
+      const previousRoomId = this.currentStudy.FK_TestingRoom || null;
+
       try {
-        await studyApi.update({
+        const updatePayload = {
           id: this.currentStudy.id,
           FK_TestingRoom: this.selectedRoomId,
-        });
-        this.currentStudy.FK_TestingRoom = this.selectedRoomId;
+          StudyName: this.currentStudy.StudyName,
+          FK_Lab: this.currentStudy.FK_Lab,
+          FK_Personnel:
+            this.currentStudy.FK_Personnel || this.currentStudy.PointofContact?.id,
+          StudyType: this.currentStudy.StudyType,
+          ParticipantType: this.currentStudy.ParticipantType || "Child",
+          Completed: this.currentStudy.Completed,
+          Description: this.currentStudy.Description,
+          PhoneScript: this.currentStudy.PhoneScript,
+          EmailTemplate: this.currentStudy.EmailTemplate,
+          ReminderTemplate: this.currentStudy.ReminderTemplate,
+          FollowUPEmailSnippet: this.currentStudy.FollowUPEmailSnippet,
+          ASDParticipant: this.currentStudy.ASDParticipant,
+          PrematureParticipant: this.currentStudy.PrematureParticipant,
+          IllParticipant: this.currentStudy.IllParticipant,
+          VisionLossParticipant: this.currentStudy.VisionLossParticipant,
+          HearingLossParticipant: this.currentStudy.HearingLossParticipant,
+          AgeGroups: (this.currentStudy.AgeGroups || []).map((g) => ({
+            MinAge: g.MinAge,
+            MaxAge: g.MaxAge,
+          })),
+          PrerequisiteIds: (this.currentStudy.Prerequisites || []).map((p) => p.id),
+          ExclusionIds: (this.currentStudy.Exclusions || []).map((e) => e.id),
+        };
+
+        const result = await studyApi.update(updatePayload);
+        this.currentStudy = { ...result.data };
+        this.selectedRoomId = this.currentStudy.FK_TestingRoom || null;
+
+        const currentIndex = this.Studies.findIndex((s) => s.id === this.currentStudy.id);
+        if (currentIndex !== -1) {
+          Object.assign(this.Studies[currentIndex], result.data);
+          this.store.setStudies(this.Studies);
+        }
       } catch (error) {
         console.error(error);
+        this.currentStudy.FK_TestingRoom = previousRoomId;
+        this.selectedRoomId = previousRoomId;
+        this.$refs.confirmD.open(
+          "Save Failed",
+          "Unable to save Assigned Physical Space. Please try again.",
+          { color: "error", noconfirm: true }
+        );
       }
     },
 
@@ -2173,6 +2305,7 @@ export default {
       // Reset Wizard State
       this.studyStepper = 1;
       this.emailTemplateTab = "phone";
+      this.templateDefaultsMode = false;
 
       this.dialog = true;
     },
@@ -2193,9 +2326,7 @@ export default {
         Completed: false,
         Description: "",
         PhoneScript: "",
-        EmailTemplate: "",
-        ReminderTemplate: "",
-        FollowUPEmailSnippet: "",
+        ...this.getTemplateDefaultsByParticipantType("Child"),
         AgeGroups: [],
         PrerequisiteIds: [],
         ExclusionIds: [],
@@ -2209,6 +2340,7 @@ export default {
       this.editedIndex = -1;
       this.studyStepper = 1; // Reset wizard to step 1
       this.emailTemplateTab = "phone";
+      this.templateDefaultsMode = true;
       this.dialog = true;
     },
 
@@ -2252,12 +2384,17 @@ export default {
       // 5. Open the Wizard at Step 1
       this.studyStepper = 1;
       this.emailTemplateTab = "phone";
+      this.templateDefaultsMode = false;
       this.dialog = true;
     },
 
     onParticipantTypeChanged(nextType) {
       if (!nextType) {
         return;
+      }
+
+      if (this.templateDefaultsMode) {
+        this.applyParticipantTypeTemplateDefaults(nextType);
       }
 
       if (!Array.isArray(this.editedStudy.AgeGroups)) {

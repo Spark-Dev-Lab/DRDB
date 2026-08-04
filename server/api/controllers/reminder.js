@@ -193,6 +193,7 @@ exports.reminderEmail = asyncHandler(async (req, res) => {
             to: emailContent.to,
             subject: emailContent.subject,
             htmlBody: emailContent.body,
+              fromName: schedule.Appointments[0].Study.Lab.LabName,
           });
 
           await log.createLog(
