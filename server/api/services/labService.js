@@ -102,8 +102,6 @@ exports.createLab = async (labData) => {
       step,
       labName: labData?.LabName,
       personnelCount: Array.isArray(labData?.Personnels) ? labData.Personnels.length : 0,
-      firstPersonnelEmail: labData?.Personnels?.[0]?.Email,
-      firstPersonnelCalendar: labData?.Personnels?.[0]?.Calendar,
       createdLabId: lab?.id || null,
       errorName: error?.name,
       errorMessage: error?.message,
@@ -111,11 +109,9 @@ exports.createLab = async (labData) => {
         message: e.message,
         type: e.type,
         path: e.path,
-        value: e.value,
       })) || null,
       parentCode: error?.parent?.code || null,
       parentErrno: error?.parent?.errno || null,
-      parentSqlMessage: error?.parent?.sqlMessage || null,
     });
     throw error;
   }
