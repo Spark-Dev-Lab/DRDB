@@ -185,6 +185,24 @@ exports.batchCreate0 = asyncHandler(async (req, res) => {
   }
 });
 
+// Import records from the Oberlin intake form (each record has { family, children[] })
+exports.importIntakeForms = asyncHandler(async (req, res) => {
+  try {
+    const records = Array.isArray(req.body) ? req.body : req.body.records;
+    const assignedLab = req.userData?.lab ?? null;
+    // Stamp the current lab onto every family record before import
+    const stamped = (records || []).map((r) => ({
+      ...r,
+      family: { ...r.family, AssignedLab: assignedLab },
+    }));
+    const result = await familyService.importIntakeForms(stamped);
+    res.status(200).send(result);
+  } catch (error) {
+    console.error("Intake form import error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Retrieve all families from the database.
 exports.search = asyncHandler(async (req, res) => {
   var queryString = {};
@@ -193,7 +211,7 @@ exports.search = asyncHandler(async (req, res) => {
   if (req.query.trainingMode === "true") {
     queryString.TrainingSet = true;
   } else {
-    queryString.TrainingSet = false;
+    queryString.TrainingSet = { [Op.or]: [false, null] };
   }
 
   if (req.query.id) {
@@ -215,6 +233,43 @@ exports.search = asyncHandler(async (req, res) => {
   if (req.query.CellPhone) {
     queryString.CellPhone = { [Op.like]: `${req.query.CellPhone}%` };
   }
+
+  const hasMinAge = req.query.minAge !== undefined && req.query.minAge !== null && req.query.minAge !== "";
+  const hasMaxAge = req.query.maxAge !== undefined && req.query.maxAge !== null && req.query.maxAge !== "";
+
+  if (hasMinAge || hasMaxAge) {
+    const minAgeMonths = Number(req.query.minAge);
+    const maxAgeMonths = Number(req.query.maxAge);
+
+    if (!Number.isFinite(minAgeMonths) || !Number.isFinite(maxAgeMonths)) {
+      return res.status(400).json({ error: "minAge and maxAge must be valid numbers." });
+    }
+
+    if (minAgeMonths < 0 || maxAgeMonths < 0 || maxAgeMonths < minAgeMonths) {
+      return res.status(400).json({ error: "minAge/maxAge range is invalid." });
+    }
+
+    const earliestDob = moment()
+      .subtract(maxAgeMonths * 30.5, "days")
+      .startOf("day")
+      .toDate();
+    const latestDob = moment()
+      .subtract(minAgeMonths * 30.5, "days")
+      .endOf("day")
+      .toDate();
+
+    queryString.DoBPrimary = { [Op.or]: [
+      { [Op.between]: [earliestDob, latestDob] },
+      { [Op.is]: null },
+    ] };
+  }
+
+  // Health/screening criteria — map same param names as child search, but filter on Family fields
+  if (req.query.ASDParticipant != null) queryString.ASD = req.query.ASDParticipant;
+  if (req.query.PrematureParticipant != null) queryString.PrematureBirth = req.query.PrematureParticipant;
+  if (req.query.IllParticipant != null) queryString.Illness = req.query.IllParticipant;
+  if (req.query.VisionLossParticipant != null) queryString.VisionLoss = req.query.VisionLossParticipant;
+  if (req.query.HearingLossParticipant != null) queryString.HearingLoss = req.query.HearingLossParticipant;
 
   if (req.query.NextContactDate) {
     queryString.NextContactDate = {
@@ -423,7 +478,7 @@ exports.followupSearch = asyncHandler(async (req, res) => {
 
   res.status(200).send({
     families,
-    message: families.length < 1 ? "No family needs to be followed up." : "",
+    message: families.length < 1 ? "No individual or family needs to be followed up." : "",
     pagination: {
       limit,
       offset,

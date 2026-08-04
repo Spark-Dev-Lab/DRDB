@@ -51,6 +51,7 @@ import family from "@/services/family";
 import moment from "moment";
 import RichTextEditor from "@/components/RichTextEditor.vue";
 import ConfirmDlg from "@/components/ConfirmDialog.vue";
+import { getParticipantContext } from "@/utils/participantContext";
 
 import { useMainStore } from "@/stores/mainStore";
 
@@ -87,11 +88,20 @@ export default {
     };
   },
   methods: {
+    participantContextFor(appointment) {
+      return getParticipantContext({
+        appointment,
+        family: appointment?.Family || this.familyInfo,
+        study: appointment?.Study,
+      });
+    },
+
     childNames() {
       if (!this.appointments || this.appointments.length === 0) return "";
       let nameList = this.appointments.map((appointment) => {
-        if (appointment.Child && appointment.Child.Name) {
-          return appointment.Child.Name.split(" ")[0];
+        const context = this.participantContextFor(appointment);
+        if (context.participantName) {
+          return context.participantName.split(" ")[0];
         }
         return "";
       }).filter(name => name !== "");
@@ -100,12 +110,46 @@ export default {
 
       let childNames = "";
 
+      const isAdult = this.appointments.length > 0 && this.participantContextFor(this.appointments[0]).participantType === "Adult";
       if (nameList.length <= 2) {
         childNames = nameList.join(" and ");
       } else {
-        childNames = "your " + nameList.length + " children";
+        childNames = isAdult ? "your " + nameList.length + " participants" : "your " + nameList.length + " children";
       }
       return childNames;
+    },
+
+    pronounsFor(appointment) {
+      const sex = appointment?.Child?.Sex;
+      if (sex === "F") {
+        return { subject: "she", object: "her", possessive: "her" };
+      }
+      if (sex === "M") {
+        return { subject: "he", object: "him", possessive: "his" };
+      }
+      return { subject: "they", object: "them", possessive: "their" };
+    },
+
+    applyParticipantTemplate(body, appointment) {
+      const context = this.participantContextFor(appointment);
+      const pronouns = this.pronounsFor(appointment);
+      const participantName = context.participantName || "";
+
+      let formatted = body || "";
+      formatted = formatted.replace(/\${{childName}}/g, participantName);
+      formatted = formatted.replace(/\${{participantName}}/g, participantName);
+      formatted = formatted.replace(/\${{he\/she}}/g, pronouns.subject);
+      formatted = formatted.replace(/\${{his\/her}}/g, pronouns.possessive);
+      formatted = formatted.replace(/\${{him\/her}}/g, pronouns.object);
+      formatted = formatted.replace(/\. he/g, ". He");
+      formatted = formatted.replace(/\. his/g, ". His");
+      formatted = formatted.replace(/\. she/g, ". She");
+      formatted = formatted.replace(/\. her/g, ". Her");
+      formatted = formatted.replace(/\. they/g, ". They");
+      formatted = formatted.replace(/\. their/g, ". Their");
+      formatted = formatted.replace(/\. them/g, ". Them");
+
+      return formatted;
     },
 
     checkEmail() {
@@ -122,20 +166,26 @@ export default {
         case "ScheduleUpdate":
           this.emailSubject = "An update on your visit on " + moment(this.appointmentTime).format("MMM D (ddd), [at] h:mma");
           break;
-        case "Introduction":
-          this.emailSubject = "An eligible study for " + this.childNames();
+        case "Introduction": {
+          const isAdultIntro = this.appointments.length > 0 && this.participantContextFor(this.appointments[0]).participantType === "Adult";
+          this.emailSubject = isAdultIntro ? "An eligible study for you" : "An eligible study for " + this.childNames();
           break;
+        }
         case "Reschedule":
         case "cancelledReminder":
-        case "noShowReminder":
-          this.emailSubject = "Reschedule " + this.childNames() + "'s study appointment";
+        case "noShowReminder": {
+          const isAdultReschedule = this.appointments.length > 0 && this.participantContextFor(this.appointments[0]).participantType === "Adult";
+          this.emailSubject = isAdultReschedule ? "Reschedule your study appointment" : "Reschedule " + this.childNames() + "'s study appointment";
           break;
+        }
         case "Follow-up":
           this.emailSubject = "We would love to hear from you: Invitation to participate in our study";
           break;
-        case "Reminder":
-          this.emailSubject = "Reminder for your study appointment with " + this.childNames();
+        case "Reminder": {
+          const isAdultReminder = this.appointments.length > 0 && this.participantContextFor(this.appointments[0]).participantType === "Adult";
+          this.emailSubject = isAdultReminder ? "Reminder for your study appointment" : "Reminder for your study appointment with " + this.childNames();
           break;
+        }
         case "ThankYou":
           this.emailSubject = "Thank you for your participation!";
           break;
@@ -192,30 +242,46 @@ export default {
           parentName = this.familyInfo.NamePrimary.split(" ")[0];
         }
 
+        const firstContext = this.participantContextFor(this.appointments[0]);
+        const isAdultParticipant = firstContext.participantType === "Adult";
+        const participantNames = this.childNames();
+        const participantPhrase = isAdultParticipant ? "for" : "with";
+        const familyPhrase = isAdultParticipant ? "you" : "you and " + participantNames;
+
         switch (this.emailType) {
           case "Confirmation":
-            opening = "<p>Dear " + parentName + ",</p><p>Thanks for your support to our research! This is a confirmation for your participation in our study with <strong>" + this.childNames() + moment(this.appointmentTime).format(" [on] dddd [(]MMM Do[)] [at] h:mma") + "</strong>.</p>";
+            opening = isAdultParticipant
+              ? "<p>Dear " + parentName + ",</p><p>Thanks for your support to our research! This is a confirmation for your participation in our study<strong>" + moment(this.appointmentTime).format(" [on] dddd [(]MMM Do[)] [at] h:mma") + "</strong>.</p>"
+              : "<p>Dear " + parentName + ",</p><p>Thanks for your support to our research! This is a confirmation for your participation in our study with <strong>" + participantNames + moment(this.appointmentTime).format(" [on] dddd [(]MMM Do[)] [at] h:mma") + "</strong>.</p>";
             break;
           case "ScheduleUpdate":
-            opening = "<p>Dear " + parentName + ",</p><p>This is an update on your visit with <strong>" + this.childNames() + moment(this.appointmentTime).format(" [on] dddd [(]MMM Do[)] [at] h:mma") + "</strong>.</p>";
+            opening = isAdultParticipant
+              ? "<p>Dear " + parentName + ",</p><p>This is an update on your visit<strong>" + moment(this.appointmentTime).format(" [on] dddd [(]MMM Do[)] [at] h:mma") + "</strong>.</p>"
+              : "<p>Dear " + parentName + ",</p><p>This is an update on your visit with <strong>" + participantNames + moment(this.appointmentTime).format(" [on] dddd [(]MMM Do[)] [at] h:mma") + "</strong>.</p>";
             break;
           case "Introduction":
-            opening = "<p>Dear " + parentName + ",</p><p>We are " + this.store.labName + ". We would love to have you and " + this.childNames() + " to participate in our study.</p>Here is the information about the study:</p>";
+            opening = "<p>Dear " + parentName + ",</p><p>We are " + this.store.labName + ". We would love to have " + familyPhrase + " participate in our study.</p><p>Here is the information about the study:</p>";
             break;
           case "Reschedule":
-            opening = "<p>Dear " + parentName + ",</p><p>I'm happy to schedule another visit for you and " + this.childNames() + ".</p><p>We would appreciate it if you could provide us with your availability by replying to this email. We will do our best to find a time that works for you.</p>";
+            opening = "<p>Dear " + parentName + ",</p><p>I'm happy to schedule another visit for " + familyPhrase + ".</p><p>We would appreciate it if you could provide us with your availability by replying to this email. We will do our best to find a time that works for you.</p>";
             break;
           case "cancelledReminder":
-            opening = "<p>Dear " + parentName + ",</p><p>We are sorry for the cancellation of " + this.childNames() + "'s study appointment. We are looking forward to your visit soon.</p><p>We would appreciate it if you could provide us with your availability by replying to this email. We will do our best to find a time that works for you and " + this.childNames() + ".</p>";
+            opening = isAdultParticipant
+              ? "<p>Dear " + parentName + ",</p><p>We are sorry for the cancellation of your study appointment. We are looking forward to your visit soon.</p><p>We would appreciate it if you could provide us with your availability by replying to this email. We will do our best to find a time that works for you.</p>"
+              : "<p>Dear " + parentName + ",</p><p>We are sorry for the cancellation of " + participantNames + "'s study appointment. We are looking forward to your visit soon.</p><p>We would appreciate it if you could provide us with your availability by replying to this email. We will do our best to find a time that works for you and " + participantNames + ".</p>";
             break;
           case "noShowReminder":
-            opening = "<p>Dear " + parentName + ",</p><p>We missed you and " + this.childNames() + " today. We hope everything is okay.</p><p>We understand that life can get busy and unpredictable sometimes. We're happy to reschedule your child's visit our lab, if you're still interested in participation.</p><p>We would appreciate it if you could provide us with your availability by replying to this email. We will do our best to find a time that works for you and " + this.childNames() + ".</p>";
+            opening = isAdultParticipant
+              ? "<p>Dear " + parentName + ",</p><p>We missed you today. We hope everything is okay.</p><p>We understand that life can get busy and unpredictable sometimes. We're happy to reschedule your visit to our lab, if you're still interested in participation.</p><p>We would appreciate it if you could provide us with your availability by replying to this email. We will do our best to find a time that works for you.</p>"
+              : "<p>Dear " + parentName + ",</p><p>We missed you and " + participantNames + " today. We hope everything is okay.</p><p>We understand that life can get busy and unpredictable sometimes. We're happy to reschedule your child's visit to our lab, if you're still interested in participation.</p><p>We would appreciate it if you could provide us with your availability by replying to this email. We will do our best to find a time that works for you and " + participantNames + ".</p>";
             break;
           case "Follow-up":
-            opening = "<p>Dear " + parentName + ",</p><p>This is " + this.store.labName + ". We hope this email finds you well!</p><p>We are writing to follow up with our previous email regarding inviting " + this.childNames() + " to participate in our study.</p><p>We would appreciate it if you could provide us with your availability by replying to this email. We will do our best to find a time that works for you and " + this.childNames() + ".</p>";
+            opening = "<p>Dear " + parentName + ",</p><p>This is " + this.store.labName + ". We hope this email finds you well!</p><p>We are writing to follow up with our previous email regarding inviting " + participantNames + " to participate in our study.</p><p>We would appreciate it if you could provide us with your availability by replying to this email. We will do our best to find a time that works for you" + (isAdultParticipant ? "." : " and " + participantNames + ".") + "</p>";
             break;
           case "ThankYou":
-            opening = "<p>Dear " + parentName + ",</p><p>Thank you so much for participating in our study with " + this.childNames() + "! We had a wonderful time with you both! :-) </p>";
+            opening = isAdultParticipant
+              ? "<p>Dear " + parentName + ",</p><p>Thank you so much for participating in our study! We had a wonderful time with you! :-) </p>"
+              : "<p>Dear " + parentName + ",</p><p>Thank you so much for participating in our study with " + participantNames + "! We had a wonderful time with you both! :-) </p>";
             break;
           case "Reminder":
             let dateLabel = "";
@@ -228,9 +294,11 @@ export default {
             }
 
             if (this.appointments[0].Study.StudyType !== "Online") {
-              opening = "<p>Dear " + parentName + ",</p><p>Hope you are doing great! This is a reminder for your visit to " + this.store.labName + " with <strong>" + this.childNames() + dateLabel + moment(this.appointmentTime).format(" [at] h:mma") + "</strong>.</p>" + (this.store.transportationInstructions || "");
+              opening = "<p>Dear " + parentName + ",</p><p>Hope you are doing great! This is a reminder for your visit to " + this.store.labName + " " + participantPhrase + " <strong>" + participantNames + dateLabel + moment(this.appointmentTime).format(" [at] h:mma") + "</strong>.</p>" + (this.store.transportationInstructions || "");
             } else {
-              opening = "<p>Dear " + parentName + ",</p><p>Hope you are doing great! This is " + this.store.labName + ". Just a reminder that you and <strong>" + this.childNames() + " will participate in our in our online study" + dateLabel + moment(this.appointmentTime).format(" [at] h:mma") + "</strong>.</p>";
+              opening = isAdultParticipant
+                ? "<p>Dear " + parentName + ",</p><p>Hope you are doing great! This is " + this.store.labName + ". Just a reminder that <strong>you will participate in our online study" + dateLabel + moment(this.appointmentTime).format(" [at] h:mma") + "</strong>.</p>"
+                : "<p>Dear " + parentName + ",</p><p>Hope you are doing great! This is " + this.store.labName + ". Just a reminder that you and <strong>" + participantNames + " will participate in our online study" + dateLabel + moment(this.appointmentTime).format(" [at] h:mma") + "</strong>.</p>";
             }
             break;
         }
@@ -256,7 +324,10 @@ export default {
             let emailBody = (this.appointments[0].Study.ReminderTemplate || "").replace(/\${{ZoomLink}}/g, ZoomLink);
 
             if (this.appointments[0].Study.StudyType === "Online") {
-              emailBody += "<p>You can download Zoom for your computer here: <a href='https://zoom.us/download'>Download Link</a></p><p><a href='https://mcmasteru365-my.sharepoint.com/:p:/g/personal/xiaon8_mcmaster_ca/EdhORdZeCwlPn-X54WquFz8Boegr1YpaNy9mzlW_wJ8ZjQ?e=hvDNGr'>CLICK HERE</a> to learn a few tips to setup online study with your child.</p>";
+              const isAdultOnline = this.participantContextFor(this.appointments[0]).participantType === "Adult";
+              emailBody += isAdultOnline
+                ? "<p>You can download Zoom for your computer here: <a href='https://zoom.us/download'>Download Link</a></p>"
+                : "<p>You can download Zoom for your computer here: <a href='https://zoom.us/download'>Download Link</a></p><p><a href='https://mcmasteru365-my.sharepoint.com/:p:/g/personal/xiaon8_mcmaster_ca/EdhORdZeCwlPn-X54WquFz8Boegr1YpaNy9mzlW_wJ8ZjQ?e=hvDNGr'>CLICK HERE</a> to learn a few tips to setup online study with your child.</p>";
             }
 
             emailBody = emailBody.replace(/\${{childName}}/g, this.childNames());
@@ -268,21 +339,7 @@ export default {
         case "ScheduleUpdate":
           this.appointments.forEach((appointment) => {
             let emailBody = appointment.Study.EmailTemplate || "";
-            if (appointment.Child.Sex === "F") {
-              emailBody = emailBody.replace(/\${{he\/she}}/g, "she");
-              emailBody = emailBody.replace(/\${{his\/her}}/g, "her");
-              emailBody = emailBody.replace(/\${{him\/her}}/g, "her");
-            } else {
-              emailBody = emailBody.replace(/\${{he\/she}}/g, "he");
-              emailBody = emailBody.replace(/\${{his\/her}}/g, "his");
-              emailBody = emailBody.replace(/\${{him\/her}}/g, "him");
-            }
-
-            emailBody = emailBody.replace(/\${{childName}}/g, appointment.Child.Name || "");
-            emailBody = emailBody.replace(/\. he/g, ". He");
-            emailBody = emailBody.replace(/\. his/g, ". His");
-            emailBody = emailBody.replace(/\. she/g, ". She");
-            emailBody = emailBody.replace(/\. her/g, ". Her");
+            emailBody = this.applyParticipantTemplate(emailBody, appointment);
 
             if (appointment.PrimaryExperimenter && appointment.PrimaryExperimenter.length > 0 && appointment.PrimaryExperimenter[0].ZoomLink) {
                 emailBody = emailBody.replace(/\${{ZoomLink}}/g, "<a href='" + appointment.PrimaryExperimenter[0].ZoomLink + "'>Zoom Link</a>");
@@ -303,21 +360,7 @@ export default {
             if (appointment.Study.FollowUPEmailSnippet && appointment.Study.FollowUPEmailSnippet !== "") {
               let emailBody = appointment.Study.FollowUPEmailSnippet;
 
-              if (appointment.Child.Sex === "F") {
-                emailBody = emailBody.replace(/\${{he\/she}}/g, "she");
-                emailBody = emailBody.replace(/\${{his\/her}}/g, "her");
-                emailBody = emailBody.replace(/\${{him\/her}}/g, "her");
-              } else {
-                emailBody = emailBody.replace(/\${{he\/she}}/g, "he");
-                emailBody = emailBody.replace(/\${{his\/her}}/g, "his");
-                emailBody = emailBody.replace(/\${{him\/her}}/g, "him");
-              }
-
-              emailBody = emailBody.replace(/\${{childName}}/g, appointment.Child.Name || "");
-              emailBody = emailBody.replace(/\. he/g, ". He");
-              emailBody = emailBody.replace(/\. his/g, ". His");
-              emailBody = emailBody.replace(/\. she/g, ". She");
-              emailBody = emailBody.replace(/\. her/g, ". Her");
+              emailBody = this.applyParticipantTemplate(emailBody, appointment);
 
               emailBodyList.push(emailBody);
             }
@@ -326,6 +369,8 @@ export default {
       }
 
       if (this.emailType === "Introduction" || this.emailType === "Confirmation" || this.emailType === "ScheduleUpdate") {
+        emailBodyList = emailBodyList.filter((item) => (item || "").trim() !== "");
+
         if (this.appointments.length > 1) {
           const childNames = this.appointments.map(appointment => appointment.FK_Child);
           const isChildUnique = Array.from(new Set(childNames));
@@ -338,13 +383,14 @@ export default {
             });
           } else {
             emailBodyList.forEach((emailBody, index) => {
-              if (index <= 2 && this.appointments[index].Child && this.appointments[index].Child.Name) {
-                  let firstName = this.appointments[index].Child.Name.split(" ")[0];
+              const participantName = this.participantContextFor(this.appointments[index]).participantName;
+              if (index <= 2 && participantName) {
+                  let firstName = participantName.split(" ")[0];
                   emailBodyList[index] = "<p><strong>Here is what " + firstName + " will do:</strong></p>" + emailBodyList[index];
               }
             });
           }
-        } else {
+        } else if (emailBodyList.length > 0) {
           emailBodyList.unshift("<p><strong>Here is what this study is about:</strong></p>");
         }
       }

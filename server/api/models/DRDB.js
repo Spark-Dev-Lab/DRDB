@@ -338,12 +338,127 @@ async function patchLegacyPersonnelSchemaIfNeeded() {
   }
 }
 
+async function patchFamilyPrimaryContactBirthdateIfNeeded() {
+  try {
+    const queryInterface = sequelize.getQueryInterface();
+    const columns = await queryInterface.describeTable("Family");
+
+    const hasDoBPrimary = Object.prototype.hasOwnProperty.call(columns, "DoBPrimary");
+
+    if (!hasDoBPrimary) {
+      await sequelize.query(
+        "ALTER TABLE `Family` ADD COLUMN `DoBPrimary` DATE NULL AFTER `NamePrimary`"
+      );
+      console.log("Patched legacy Family table: added DoBPrimary.");
+    }
+  } catch (error) {
+    console.warn(
+      "Could not auto-patch legacy Family schema for primary contact birthdate. " +
+        "Please run migration manually if needed:",
+      error.message
+    );
+  }
+}
+
+async function patchParticipantIdentityFieldsIfNeeded() {
+  try {
+    const queryInterface = sequelize.getQueryInterface();
+    const familyColumns = await queryInterface.describeTable("Family");
+    const childColumns = await queryInterface.describeTable("Child");
+
+    const hasPrimaryGenderIdentity = Object.prototype.hasOwnProperty.call(
+      familyColumns,
+      "PrimaryGenderIdentity"
+    );
+    const hasSecondaryGenderIdentity = Object.prototype.hasOwnProperty.call(
+      familyColumns,
+      "SecondaryGenderIdentity"
+    );
+
+    if (!hasPrimaryGenderIdentity) {
+      await sequelize.query(
+        "ALTER TABLE `Family` ADD COLUMN `PrimaryGenderIdentity` VARCHAR(50) NULL AFTER `NamePrimary`"
+      );
+      console.log("Patched legacy Family table: added PrimaryGenderIdentity.");
+    }
+
+    if (!hasSecondaryGenderIdentity) {
+      await sequelize.query(
+        "ALTER TABLE `Family` ADD COLUMN `SecondaryGenderIdentity` VARCHAR(50) NULL AFTER `NameSecondary`"
+      );
+      console.log("Patched legacy Family table: added SecondaryGenderIdentity.");
+    }
+
+    const hasChildGender = Object.prototype.hasOwnProperty.call(childColumns, "Gender");
+
+    if (!hasChildGender) {
+      await sequelize.query(
+        "ALTER TABLE `Child` ADD COLUMN `Gender` VARCHAR(50) NULL AFTER `Sex`"
+      );
+      console.log("Patched legacy Child table: added Gender.");
+    } else {
+      const childGenderType = String(childColumns.Gender.type || "").toUpperCase();
+      if (childGenderType.includes("VARCHAR(1)") || childGenderType.includes("CHAR(1)")) {
+        await sequelize.query(
+          "ALTER TABLE `Child` MODIFY COLUMN `Gender` VARCHAR(50) NULL"
+        );
+        console.log("Patched legacy Child table: widened Gender to VARCHAR(50).");
+      }
+    }
+  } catch (error) {
+    console.warn(
+      "Could not auto-patch participant identity fields. " +
+        "Please run migration manually if needed:",
+      error.message
+    );
+  }
+}
+
+async function patchStudyParticipantCriteriaEnumsIfNeeded() {
+  try {
+    const queryInterface = sequelize.getQueryInterface();
+    const studyColumns = await queryInterface.describeTable("Study");
+    const criteriaColumns = [
+      "ASDParticipant",
+      "PrematureParticipant",
+      "VisionLossParticipant",
+      "HearingLossParticipant",
+      "IllParticipant",
+    ];
+
+    for (const column of criteriaColumns) {
+      if (!Object.prototype.hasOwnProperty.call(studyColumns, column)) {
+        continue;
+      }
+
+      const columnType = String(studyColumns[column].type || "");
+      if (columnType.includes("'Not Applicable'")) {
+        continue;
+      }
+
+      await sequelize.query(
+        `ALTER TABLE \`Study\` MODIFY COLUMN \`${column}\` ENUM('Include','Exclude','Only','Not Applicable') NOT NULL DEFAULT 'Include'`
+      );
+      console.log(`Patched Study.${column} enum to include Not Applicable.`);
+    }
+  } catch (error) {
+    console.warn(
+      "Could not auto-patch Study participant criteria enums. " +
+        "Please run migration manually if needed:",
+      error.message
+    );
+  }
+}
+
 // Synchronize with database (tables created/updated in background)
 sequelize.sync({ force: false }).then(async () => {
   
   try {
     await relaxLegacyStudyAgeConstraintsIfNeeded();
     await patchLegacyPersonnelSchemaIfNeeded();
+    await patchFamilyPrimaryContactBirthdateIfNeeded();
+    await patchParticipantIdentityFieldsIfNeeded();
+    await patchStudyParticipantCriteriaEnumsIfNeeded();
 
     // SAFETY CHECK: Count how many labs or users exist
     // (Assuming 'lab' or 'user' is one of your exported models)

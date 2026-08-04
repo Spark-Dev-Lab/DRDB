@@ -12,7 +12,19 @@ module.exports = function(sequelize, DataTypes) {
 			type: DataTypes.STRING(50),
 			allowNull: true
 		},
+		PrimaryGenderIdentity: {
+			type: DataTypes.STRING(50),
+			allowNull: true
+		},
+		DoBPrimary: {
+			type: DataTypes.DATEONLY,
+			allowNull: true
+		},
 		NameSecondary: {
+			type: DataTypes.STRING(50),
+			allowNull: true
+		},
+		SecondaryGenderIdentity: {
 			type: DataTypes.STRING(50),
 			allowNull: true
 		},
@@ -52,7 +64,44 @@ module.exports = function(sequelize, DataTypes) {
 			type: DataTypes.TEXT,
 			allowNull: true
 		},
+		PreferredContactMethods: {
+			type: DataTypes.TEXT,
+			allowNull: true
+		},
+		PreferredContactTime: {
+			type: DataTypes.STRING(255),
+			allowNull: true
+		},
+		PreferredContactNotes: {
+			type: DataTypes.TEXT,
+			allowNull: true
+		},
 		AutismHistory: {
+			type: DataTypes.INTEGER,
+			allowNull: true,
+			defaultValue: 0
+		},
+		ASD: {
+			type: DataTypes.INTEGER,
+			allowNull: true,
+			defaultValue: 0
+		},
+		HearingLoss: {
+			type: DataTypes.INTEGER,
+			allowNull: true,
+			defaultValue: 0
+		},
+		VisionLoss: {
+			type: DataTypes.INTEGER,
+			allowNull: true,
+			defaultValue: 0
+		},
+		PrematureBirth: {
+			type: DataTypes.INTEGER,
+			allowNull: true,
+			defaultValue: 0
+		},
+		Illness: {
 			type: DataTypes.INTEGER,
 			allowNull: true,
 			defaultValue: 0
@@ -78,9 +127,16 @@ module.exports = function(sequelize, DataTypes) {
 			allowNull: true
 		},
 		RecruitmentMethod: {
-			type: DataTypes.STRING(100),
-			allowNull: true,
-			defaultValue: "Hospital"
+			type: DataTypes.TEXT,
+			allowNull: true
+		},
+		BrochureSeen: {
+			type: DataTypes.STRING(50),
+			allowNull: true
+		},
+		BrochureLocation: {
+			type: DataTypes.TEXT,
+			allowNull: true
 		},
 		AssignedLab: {
 			type: DataTypes.INTEGER,

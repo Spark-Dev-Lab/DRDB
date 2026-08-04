@@ -19,7 +19,7 @@
               {{ family?.NamePrimary || 'Unknown Family' }}
             </div>
             <div class="text-subtitle-2 text-muted">
-              Family ID: {{ family?.id || '—' }}
+              Household ID: {{ family?.id || '—' }}
             </div>
           </div>
         </div>

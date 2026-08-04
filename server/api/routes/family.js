@@ -20,9 +20,18 @@ const familyCreateValidation = [
     body("NamePrimary")
         .optional({ values: "falsy" })
         .isLength({ max: 50 }).withMessage("NamePrimary must not exceed 50 characters"),
+    body("PrimaryGenderIdentity")
+        .optional({ values: "falsy" })
+        .isLength({ max: 50 }).withMessage("PrimaryGenderIdentity must not exceed 50 characters"),
+    body("DoBPrimary")
+        .optional({ values: "falsy" })
+        .isISO8601().withMessage("DoBPrimary must be a valid date (YYYY-MM-DD)"),
     body("NameSecondary")
         .optional({ values: "falsy" })
         .isLength({ max: 50 }).withMessage("NameSecondary must not exceed 50 characters"),
+    body("SecondaryGenderIdentity")
+        .optional({ values: "falsy" })
+        .isLength({ max: 50 }).withMessage("SecondaryGenderIdentity must not exceed 50 characters"),
     body("EnglishPercent")
         .optional({ values: "falsy" })
         .isInt({ min: 0, max: 100 }).withMessage("EnglishPercent must be an integer between 0 and 100"),
@@ -35,6 +44,9 @@ const familyCreateValidation = [
     body("Children.*.Sex")
         .optional({ values: "falsy" })
         .isLength({ max: 1 }).withMessage("Child Sex must be a single character"),
+    body("Children.*.Gender")
+        .optional({ values: "falsy" })
+        .isLength({ max: 50 }).withMessage("Child Gender must not exceed 50 characters"),
     body("Children.*.DoB")
         .optional({ values: "falsy" })
         .isISO8601().withMessage("Child DoB must be a valid date (YYYY-MM-DD)"),
@@ -58,6 +70,10 @@ const familyCreateValidation = [
  *               NamePrimary:
  *                 type: string
  *                 example: "Jane Doe"
+ *               DoBPrimary:
+ *                 type: string
+ *                 format: date
+ *                 example: "1980-07-18"
  *               Email:
  *                 type: string
  *                 example: "jane.doe@example.com"
@@ -110,6 +126,8 @@ router.post("/add", checkAuth, familyCreateValidation, validate, FamilyControlle
  *         description: Authentication failed
  */
 router.post("/addBatch", checkAuth, FamilyController.batchCreate0);
+
+router.post("/importIntakeForms", checkAuth, FamilyController.importIntakeForms);
 
 /**
  * @swagger

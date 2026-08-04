@@ -3,7 +3,9 @@ import { useMainStore } from "@/stores/mainStore";
 
 export default {
   googleCredentialsURL() {
-    return api().get("extAPIs/");
+    return api().get("extAPIs/", {
+      params: { t: Date.now() },
+    });
   },
 
   setLabToken(signInCode) {

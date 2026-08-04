@@ -1,9 +1,101 @@
 const asyncHandler = require("express-async-handler");
 const fs = require("fs");
+const crypto = require("crypto");
 const model = require("../models/DRDB");
 
 const { google } = require("googleapis");
 const { OAuth2 } = google.auth;
+
+function resolveRedirectUri(req, redirectUris = []) {
+  if (!Array.isArray(redirectUris) || redirectUris.length === 0) return null;
+
+  const normalize = (value) => (value || "").trim().replace(/\/$/, "");
+  const parseUrlSafe = (value) => {
+    try {
+      return new URL(value);
+    } catch (error) {
+      return null;
+    }
+  };
+  const isLocalHostName = (hostname) =>
+    hostname === "localhost" || hostname === "127.0.0.1";
+  const isPrivateIpv4Host = (hostname) => {
+    const parts = (hostname || "").split(".").map((p) => Number(p));
+    if (parts.length !== 4 || parts.some((p) => Number.isNaN(p) || p < 0 || p > 255)) {
+      return false;
+    }
+    if (parts[0] === 10) return true;
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    if (parts[0] === 192 && parts[1] === 168) return true;
+    if (parts[0] === 169 && parts[1] === 254) return true;
+    return false;
+  };
+  const isPrivateIpUri = (uri) => {
+    const parsed = parseUrlSafe(uri);
+    if (!parsed) return false;
+    return isPrivateIpv4Host(parsed.hostname);
+  };
+  const parseOrigin = (value) => {
+    const cleaned = normalize(value);
+    if (!cleaned) return null;
+    try {
+      const parsed = new URL(cleaned);
+      return `${parsed.protocol}//${parsed.host}`;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const forwardedProto = (req.get("x-forwarded-proto") || "").split(",")[0].trim();
+  const forwardedHost = (req.get("x-forwarded-host") || "").split(",")[0].trim();
+  const proto = forwardedProto || req.protocol || "http";
+  const host = forwardedHost || req.get("host");
+  const originHeader = parseOrigin(req.get("origin"));
+  const appUrlOrigin = parseOrigin(process.env.APP_URL);
+
+  const originCandidates = [];
+  if (originHeader) originCandidates.push(originHeader);
+  if (host) originCandidates.push(`${proto}://${host}`);
+  if (appUrlOrigin) originCandidates.push(appUrlOrigin);
+
+  const candidates = [];
+  originCandidates.forEach((origin) => {
+    const normalizedOrigin = normalize(origin);
+    candidates.push(`${normalizedOrigin}/oauth/callback`);
+    candidates.push(`${normalizedOrigin}/oauth/callback/`);
+  });
+
+  const localhostAuthorized = redirectUris.find((uri) => {
+    const parsed = parseUrlSafe(uri);
+    return parsed && isLocalHostName(parsed.hostname);
+  });
+
+  const matched = candidates.find((uri) => redirectUris.includes(uri));
+  if (matched) {
+    if (isPrivateIpUri(matched) && localhostAuthorized) return localhostAuthorized;
+    return matched;
+  }
+
+  const normalizedAuthorizedMap = new Map(
+    redirectUris.map((uri) => [normalize(uri), uri])
+  );
+  const normalizedCandidateMatch = candidates.find((uri) =>
+    normalizedAuthorizedMap.has(normalize(uri))
+  );
+  if (normalizedCandidateMatch) {
+    const resolved = normalizedAuthorizedMap.get(normalize(normalizedCandidateMatch));
+    if (isPrivateIpUri(resolved) && localhostAuthorized) return localhostAuthorized;
+    return resolved;
+  }
+
+  const publicFallback = redirectUris.find(
+    (uri) => !/https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//i.test(uri) && !isPrivateIpUri(uri)
+  );
+
+  const privateFallback = redirectUris.find((uri) => isPrivateIpUri(uri));
+
+  return publicFallback || localhostAuthorized || privateFallback || redirectUris[0];
+}
 
 async function resolveGmailAddress(gmailClient) {
   try {
@@ -54,21 +146,20 @@ exports.googleCredentialsURL = asyncHandler(async (req, res) => {
     const config = parsedCredentials.installed || parsedCredentials.web;
     const { client_secret, client_id, redirect_uris } = config;
 
-    // Determine the redirect URI based on the request's origin
-    const origin = req.get('origin') || "http://localhost:5173";
-    const redirect_uri = `${origin}/oauth/callback`;
-    
-    // Check if the current origin's redirect URI is in the authorized list
-    const valid_redirect_uri = redirect_uris.includes(redirect_uri) 
-      ? redirect_uri 
-      : redirect_uris[0];
+    const valid_redirect_uri = resolveRedirectUri(req, redirect_uris);
 
     const oAuth2Client = new OAuth2(client_id, client_secret, valid_redirect_uri);
+
+    // OAuth URLs are one-time and should never be cached.
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
 
     const authUrl = oAuth2Client.generateAuthUrl({
       access_type: "offline",
       prompt: "consent",
       scope: SCOPES,
+      state: crypto.randomBytes(16).toString("hex"),
     });
 
     // check lab folder
@@ -112,11 +203,7 @@ exports.googleToken = asyncHandler(async (req, res) => {
     const config = parsedCredentials.installed || parsedCredentials.web;
     const { client_secret, client_id, redirect_uris } = config;
 
-    const origin = req.get('origin') || "http://localhost:5173";
-    const redirect_uri = `${origin}/oauth/callback`;
-    const valid_redirect_uri = redirect_uris.includes(redirect_uri) 
-      ? redirect_uri 
-      : redirect_uris[0];
+    const valid_redirect_uri = resolveRedirectUri(req, redirect_uris);
 
     const oAuth2Client = new OAuth2(client_id, client_secret, valid_redirect_uri);
 
@@ -188,11 +275,7 @@ exports.adminToken = asyncHandler(async (req, res) => {
     const config = parsedCredentials.installed || parsedCredentials.web;
     const { client_secret, client_id, redirect_uris } = config;
 
-    const origin = req.get('origin') || "http://localhost:5173";
-    const redirect_uri = `${origin}/oauth/callback`;
-    const valid_redirect_uri = redirect_uris.includes(redirect_uri) 
-      ? redirect_uri 
-      : redirect_uris[0];
+    const valid_redirect_uri = resolveRedirectUri(req, redirect_uris);
 
     const oAuth2Client = new OAuth2(client_id, client_secret, valid_redirect_uri);
 
@@ -250,11 +333,7 @@ exports.googleEmail = asyncHandler(async (req, res) => {
     const config = parsedCredentials.installed || parsedCredentials.web;
     const { client_secret, client_id, redirect_uris } = config;
 
-    const origin = req.get('origin') || "http://localhost:5173";
-    const redirect_uri = `${origin}/oauth/callback`;
-    const valid_redirect_uri = redirect_uris.includes(redirect_uri)
-      ? redirect_uri
-      : redirect_uris[0];
+    const valid_redirect_uri = resolveRedirectUri(req, redirect_uris);
 
     const oAuth2Client = new OAuth2(client_id, client_secret, valid_redirect_uri);
 
@@ -305,11 +384,7 @@ exports.googleEmail = asyncHandler(async (req, res) => {
     const config = parsedCredentials.installed || parsedCredentials.web;
     const { client_secret, client_id, redirect_uris } = config;
 
-    const origin = req.get('origin') || "http://localhost:5173";
-    const redirect_uri = `${origin}/oauth/callback`;
-    const valid_redirect_uri = redirect_uris.includes(redirect_uri)
-      ? redirect_uri
-      : redirect_uris[0];
+    const valid_redirect_uri = resolveRedirectUri(req, redirect_uris);
 
     const oAuth2Client = new OAuth2(client_id, client_secret, valid_redirect_uri);
 

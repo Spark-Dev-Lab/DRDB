@@ -128,6 +128,10 @@ exports.search = asyncHandler(async (req, res) => {
   delete queryString.Phone;
   if (queryString.StudyName) { queryString["$Appointments.FK_Study$"] = queryString.StudyName; }
   delete queryString.StudyName;
+  if (queryString.ParticipantType) {
+    queryString["$Appointments.Study.ParticipantType$"] = queryString.ParticipantType;
+  }
+  delete queryString.ParticipantType;
   if (queryString.StudyId) { queryString["$Appointments.FK_Study$"] = queryString.StudyId; }
   delete queryString.StudyId;
   if (queryString.lab) { queryString["$Appointments.Study.FK_Lab$"] = queryString.lab; }

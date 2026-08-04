@@ -108,7 +108,7 @@ module.exports = function(sequelize, DataTypes) {
 			allowNull: true
 		},
 		Gender: {
-			type: DataTypes.STRING(1),
+			type: DataTypes.STRING(50),
 			allowNull: true
 		}
 	}, {

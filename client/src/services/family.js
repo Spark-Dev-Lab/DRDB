@@ -22,6 +22,9 @@ export default {
 
     return api().post("family/addBatch", familyInfo);
   },
+  importIntakeForms(records) {
+    return api().post("family/importIntakeForms", records);
+  },
   search(familyInfo) {
     return api().get("family/", {
       params: familyInfo

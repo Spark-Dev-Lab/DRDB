@@ -782,12 +782,18 @@
       </v-col>
     </v-row>
 
-    <v-dialog v-model="dialog" max-width="500px" persistent>
+    <v-dialog
+      v-model="dialog"
+      max-width="500px"
+      persistent
+      aria-labelledby="settings-change-password-title"
+    >
       <v-card class="ds-card" variant="flat">
         <v-card-title
           class="d-flex justify-space-between align-center py-4 ds-header-gradient"
         >
           <span
+            id="settings-change-password-title"
             class="text-h6 font-weight-bold"
             style="font-family: var(--ds-font-family-heading)"
             >Change Password</span
@@ -864,12 +870,18 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="dialogImport" max-width="800px" persistent>
+    <v-dialog
+      v-model="dialogImport"
+      max-width="800px"
+      persistent
+      aria-labelledby="settings-import-results-title"
+    >
       <v-card class="ds-card" variant="flat">
         <v-card-title
           class="d-flex justify-space-between align-center py-4 ds-header-gradient"
         >
           <span
+            id="settings-import-results-title"
             class="text-h6 font-weight-bold"
             style="font-family: var(--ds-font-family-heading)"
             >Import Results</span
@@ -892,12 +904,18 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="dialogGoogle" max-width="500px" persistent>
+    <v-dialog
+      v-model="dialogGoogle"
+      max-width="500px"
+      persistent
+      aria-labelledby="settings-google-auth-title"
+    >
       <v-card class="ds-card" variant="flat">
         <v-card-title
           class="d-flex justify-space-between align-center py-4 ds-header-gradient"
         >
           <span
+            id="settings-google-auth-title"
             class="text-h6 font-weight-bold"
             style="font-family: var(--ds-font-family-heading)"
             >Google Authentication</span
@@ -913,10 +931,10 @@
           >
             {{ emailSetupError }}
           </v-alert>
-          <div class="text-caption font-weight-bold text-uppercase text-muted mb-1 px-1">
-            Paste Sign-in Code
-          </div>
           <v-textarea
+            id="settings-google-signin-code"
+            label="Paste Sign-in Code"
+            aria-label="Paste Sign-in Code"
             variant="outlined"
             no-resize
             rows="2"
@@ -931,20 +949,28 @@
           <v-btn
             color="primary"
             variant="flat"
-            :disabled="!signInCode"
-            @click="setAdmin ? setAdminToken() : setLabToken()"
+            :disabled="!signInCode || googleVerifyLoading"
+            :loading="googleVerifyLoading"
+            @click="verifyGoogleCode"
             >Verify Code</v-btn
           >
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="dialogNewLab" max-width="800px" persistent scrollable>
+    <v-dialog
+      v-model="dialogNewLab"
+      max-width="800px"
+      persistent
+      scrollable
+      aria-labelledby="settings-create-lab-title"
+    >
       <v-card class="ds-card" variant="flat">
         <v-card-title
           class="d-flex justify-space-between align-center py-4 ds-header-gradient"
         >
           <span
+            id="settings-create-lab-title"
             class="text-h6 font-weight-bold"
             style="font-family: var(--ds-font-family-heading)"
             >Create New Lab</span
@@ -1025,12 +1051,19 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="dialogEditLab" max-width="1200px" persistent scrollable>
+    <v-dialog
+      v-model="dialogEditLab"
+      max-width="1200px"
+      persistent
+      scrollable
+      aria-labelledby="settings-update-lab-title"
+    >
       <v-card class="ds-card" variant="flat">
         <v-card-title
           class="d-flex justify-space-between align-center py-4 ds-header-gradient"
         >
           <span
+            id="settings-update-lab-title"
             class="text-h6 font-weight-bold"
             style="font-family: var(--ds-font-family-heading)"
             >Update Lab Profile</span
@@ -1172,6 +1205,7 @@ import TestingRooms from "@/components/TestingRooms.vue";
 import ConfirmDlg from "@/components/ConfirmDialog.vue";
 import moment from "moment";
 import { useMainStore } from "@/stores/mainStore";
+import { isIntakeForm, parseIntakeFormRows } from "@/utils/intakeFormParser";
 
 export default {
   components: { TestingRooms, ConfirmDlg },
@@ -1191,6 +1225,7 @@ export default {
       dialogImport: false,
       setAdmin: false,
       signInCode: null,
+      googleVerifyLoading: false,
       labEmail: "Lab email is not set up yet.",
       adminEmail: "Admin email is not set up yet.",
       emailSetupError: null,
@@ -1221,6 +1256,7 @@ export default {
         staleScheduleDays: 13,
       },
       inputFile: undefined,
+      uploadFileType: null,
       uploadFile: null,
       importReport: "",
       loadingStatus: false,
@@ -1851,16 +1887,87 @@ export default {
     async googleCredentialsURL(accountType) {
       this.setAdmin = accountType === "admin";
       this.dialogGoogle = true;
+      this.emailSetupError = null;
       try {
         const credentialsURL = await externalAPIs.googleCredentialsURL();
-        window.open(credentialsURL.data, "_blank");
+        window.open(credentialsURL.data, "googleAuth", "width=500,height=650,popup=yes");
       } catch (error) {
+        this.emailSetupError =
+          error?.response?.data?.message ||
+          "Could not open Google authentication. Please try again.";
         console.log(error);
       }
     },
-    async setLabToken() {
+    async verifyGoogleCode() {
+      if (this.googleVerifyLoading) return;
+
+      const code = (this.signInCode || "").trim();
+      if (!code) {
+        this.emailSetupError = "Please paste a valid sign-in code.";
+        return;
+      }
+
+      this.signInCode = code;
+      this.googleVerifyLoading = true;
+      this.emailSetupError = null;
+
       try {
-        const response = await externalAPIs.setLabToken(this.signInCode);
+        const request = this.setAdmin
+          ? externalAPIs.setAdminToken(code)
+          : externalAPIs.setLabToken(code);
+
+        const response = await Promise.race([
+          request,
+          new Promise((_, reject) => {
+            setTimeout(() => reject(new Error("Verification request timed out.")), 20000);
+          }),
+        ]);
+
+        if (this.setAdmin) {
+          this.adminEmail = response.data.Email || "admin configured";
+          this.store.setAdminEmailStatus(true);
+          this.$refs.confirmD.open(
+            "Success",
+            "Admin email account is successfully setup!",
+            { color: "success", noconfirm: true }
+          );
+        } else {
+          this.labEmail = response.data.Email;
+          this.editedLab.Email = response.data.Email;
+          this.store.setLabEmailStatus(true);
+          this.store.setLabEmail(this.labEmail);
+          this.$refs.confirmD.open("Success", "Lab email account is successfully setup!", {
+            color: "success",
+            noconfirm: true,
+          });
+        }
+
+        this.closeExtAPIs();
+      } catch (error) {
+        if (this.setAdmin) {
+          this.store.setAdminEmailStatus(false);
+        } else {
+          this.store.setLabEmailStatus(false);
+        }
+        this.emailSetupError =
+          error?.response?.data?.message ||
+          error?.message ||
+          "Could not verify Google sign-in code. Please try again.";
+        console.log(error);
+      }
+
+      this.googleVerifyLoading = false;
+    },
+    async setLabToken() {
+      this.emailSetupError = null;
+      const code = (this.signInCode || "").trim();
+      if (!code) {
+        this.emailSetupError = "Please paste a valid sign-in code.";
+        return;
+      }
+
+      try {
+        const response = await externalAPIs.setLabToken(code);
         this.labEmail = response.data.Email;
         this.editedLab.Email = response.data.Email; // Update the form state with the new email
         this.store.setLabEmailStatus(true);
@@ -1869,15 +1976,25 @@ export default {
           color: "success",
           noconfirm: true,
         });
+        this.closeExtAPIs();
       } catch (error) {
         this.store.setLabEmailStatus(false);
+        this.emailSetupError =
+          error?.response?.data?.message ||
+          "Could not verify Google sign-in code. Please try again.";
         console.log(error);
       }
-      this.closeExtAPIs();
     },
     async setAdminToken() {
+      this.emailSetupError = null;
+      const code = (this.signInCode || "").trim();
+      if (!code) {
+        this.emailSetupError = "Please paste a valid sign-in code.";
+        return;
+      }
+
       try {
-        const response = await externalAPIs.setAdminToken(this.signInCode);
+        const response = await externalAPIs.setAdminToken(code);
         this.adminEmail = response.data.Email || "admin configured";
         this.$refs.confirmD.open(
           "Success",
@@ -1885,15 +2002,20 @@ export default {
           { color: "success", noconfirm: true }
         );
         this.store.setAdminEmailStatus(true);
+        this.closeExtAPIs();
       } catch (error) {
         this.store.setAdminEmailStatus(false);
+        this.emailSetupError =
+          error?.response?.data?.message ||
+          "Could not verify Google sign-in code. Please try again.";
         console.log(error);
       }
-      this.closeExtAPIs();
     },
     closeExtAPIs() {
       this.dialogGoogle = false;
       this.signInCode = null;
+      this.emailSetupError = null;
+      this.googleVerifyLoading = false;
     },
     selectFile(file) {
       if (file) {
@@ -1905,24 +2027,36 @@ export default {
             var workbook = XLSX.read(data, { type: "array" });
             let sheetName = workbook.SheetNames[0];
             let worksheet = workbook.Sheets[sheetName];
-            var newParticipants = XLSX.utils.sheet_to_json(worksheet);
-            newParticipants.forEach((participant) => {
-              participant.DoB = moment(participant.DoB, "DD/MM/YYYY").toDate();
-              if (!participant.Name)
-                participant.Name = participant.Child_Last_Name
-                  ? participant.Child_First_Name + " " + participant.Child_Last_Name
-                  : participant.Child_First_Name;
-              participant.Name = (participant.Name || "")
-                .replace(/undefined /g, "")
-                .replace(/ undefined/g, "");
-              if (participant.Phone)
-                participant.Phone = participant.Phone.replace(/-/g, "");
-              if (participant.CellPhone)
-                participant.CellPhone = participant.CellPhone.replace(/-/g, "");
-              participant.Age = moment().diff(participant.DoB, "days");
-              participant.DoB = moment(participant.DoB).format("YYYY-MM-DD");
-            });
-            this.uploadFile = newParticipants;
+
+            // Read as 2D array to preserve duplicate column names
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+
+            if (isIntakeForm(rows[0])) {
+              // Oberlin Community Contact List intake form
+              this.uploadFile = parseIntakeFormRows(rows);
+              this.uploadFileType = "intake";
+            } else {
+              // Legacy DRDB spreadsheet format
+              const newParticipants = XLSX.utils.sheet_to_json(worksheet);
+              newParticipants.forEach((participant) => {
+                participant.DoB = moment(participant.DoB, "DD/MM/YYYY").toDate();
+                if (!participant.Name)
+                  participant.Name = participant.Child_Last_Name
+                    ? participant.Child_First_Name + " " + participant.Child_Last_Name
+                    : participant.Child_First_Name;
+                participant.Name = (participant.Name || "")
+                  .replace(/undefined /g, "")
+                  .replace(/ undefined/g, "");
+                if (participant.Phone)
+                  participant.Phone = participant.Phone.replace(/-/g, "");
+                if (participant.CellPhone)
+                  participant.CellPhone = participant.CellPhone.replace(/-/g, "");
+                participant.Age = moment().diff(participant.DoB, "days");
+                participant.DoB = moment(participant.DoB).format("YYYY-MM-DD");
+              });
+              this.uploadFile = newParticipants;
+              this.uploadFileType = "legacy";
+            }
           } catch (err) {
             this.$refs.confirmD.open(
               "Error",
@@ -1938,8 +2072,15 @@ export default {
       if (this.uploadFile) {
         this.loadingStatus = true;
         try {
-          const importResults = await family.batchImport(this.uploadFile);
-          this.importReport = this.importOutput(importResults.data);
+          let importResults;
+          if (this.uploadFileType === "intake") {
+            const response = await family.importIntakeForms(this.uploadFile);
+            importResults = response.data;
+          } else {
+            const response = await family.batchImport(this.uploadFile);
+            importResults = response.data;
+          }
+          this.importReport = this.importOutput(importResults);
           this.dialogImport = true;
         } catch (error) {
           this.$refs.confirmD.open(
@@ -1949,6 +2090,7 @@ export default {
           );
         }
         this.uploadFile = null;
+        this.uploadFileType = null;
       }
       this.loadingStatus = false;
     },
@@ -1962,7 +2104,7 @@ export default {
           "<br><strong>Check if these families have duplicated child records. They probably just have twins.</strong><br>";
         importResults.doubleCheckList.forEach((fam) => {
           alertText +=
-            " - <strong>Family ID</strong>: " +
+            " - <strong>Household ID</strong>: " +
             fam.FK_Family +
             ", <strong>Email</strong>: " +
             fam.Email +
@@ -2273,12 +2415,14 @@ export default {
       }
     },
     handleOAuthMessage(event) {
-      if (event.origin !== window.location.origin) return;
-      if (event.data && event.data.type === "GOOGLE_OAUTH_CODE" && event.data.code) {
-        this.signInCode = event.data.code;
-        if (this.setAdmin) this.setAdminToken();
-        else this.setLabToken();
-      }
+      const payload = event?.data;
+      if (!payload || payload.type !== "GOOGLE_OAUTH_CODE" || !payload.code) return;
+
+      // Backward compatible: older callback page sends only { type, code }.
+      // If a source marker exists, require it to match.
+      if (payload.source && payload.source !== "drdb-oauth-callback") return;
+
+      this.signInCode = payload.code;
     },
   },
   watch: {
@@ -2319,7 +2463,6 @@ export default {
         const hasLabEmail = !!profile.data.labEmail;
         const hasAdminEmail = !!profile.data.adminEmail;
         const hasAdminToken = !!profile.data.adminEmailConfigured;
-        const adminFetchFailed = !!profile.data.adminEmailFetchError;
 
         if (hasLabEmail) {
           this.labEmail = profile.data.labEmail;
@@ -2338,10 +2481,6 @@ export default {
           this.adminEmail =
             "Admin token is configured, but Gmail verification is unavailable.";
           this.store.setAdminEmailStatus(true);
-          if (adminFetchFailed && !this.emailSetupError) {
-            this.emailSetupError =
-              "Admin email token exists, but Gmail could not be reached to verify the address.";
-          }
         } else {
           this.adminEmail = "Admin email is not set up yet.";
           this.store.setAdminEmailStatus(false);

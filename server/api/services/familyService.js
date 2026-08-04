@@ -11,6 +11,40 @@ const { Op } = require("sequelize");
 
 const ALPHABET = "abcdefghijk".split("");
 
+// Maps loose Google Form text to canonical values using substring matching.
+// Options contain commas internally, so we never split on commas.
+const RECRUITMENT_MAP = [
+  { key: "CommunityEvent",        pattern: "community event" },
+  { key: "OberlinKidsReferral",   pattern: "oberlinkids referral" },
+  { key: "SocialMedia",           pattern: "social media" },
+  { key: "Lab website",           pattern: "lab website" },
+  { key: "PreviousParticipation", pattern: "previous participation" },
+  { key: "Other",                 pattern: "other" },
+];
+
+const BROCHURE_LOCATION_MAP = [
+  { key: "Bulletin board / community location", pattern: "local bulletin board" },
+  { key: "Intake packet / pamphlet",            pattern: "intake packet" },
+  { key: "Received in the mail",                pattern: "received in the mail" },
+  { key: "Given by another person",             pattern: "given to me by another person" },
+  { key: "Other",                               pattern: "other" },
+];
+
+function normalizeByMap(raw, map) {
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  const matched = map.filter(({ pattern }) => lower.includes(pattern)).map(({ key }) => key);
+  return matched.length ? JSON.stringify([...new Set(matched)]) : null;
+}
+
+function normalizeRecruitmentMethod(raw) {
+  return normalizeByMap(raw, RECRUITMENT_MAP);
+}
+
+function normalizeBrochureLocation(raw) {
+  return normalizeByMap(raw, BROCHURE_LOCATION_MAP);
+}
+
 // ─── Shared Sequelize include blocks ─────────────────────────────
 
 /**
@@ -315,9 +349,88 @@ async function batchImportFamilies(newFamilies) {
   };
 }
 
+/**
+ * Import records parsed from the Oberlin intake form.
+ * Each record has { family, children[] }.
+ */
+async function importIntakeForms(records) {
+  let nOfAdded = 0;
+  let nOfSkip = 0;
+  const skipList = [];
+  const doubleCheckList = [];
+
+  for (const record of records) {
+    const { family, children } = record;
+    const searchString = [];
+    if (family.Phone) searchString.push({ Phone: family.Phone });
+    if (family.Email) searchString.push({ Email: family.Email });
+    if (!searchString.length) { nOfSkip += 1; continue; }
+
+    let existingFamily = await model.family.findOne({
+      where: { [Op.or]: searchString },
+      include: [model.child],
+    });
+
+    let savedFamily;
+    if (existingFamily) {
+      // Update secondary name/DoB if not already set
+      const updates = {};
+      if (!existingFamily.NameSecondary && family.NameSecondary) updates.NameSecondary = family.NameSecondary;
+      if (!existingFamily.DoBPrimary && family.DoBPrimary) updates.DoBPrimary = family.DoBPrimary;
+      if (!existingFamily.AssignedLab && family.AssignedLab) updates.AssignedLab = family.AssignedLab;
+      // Always overwrite contact preferences and recruitment info from the form
+      if (family.PreferredContactMethods) updates.PreferredContactMethods = family.PreferredContactMethods;
+      if (family.PreferredContactTime) updates.PreferredContactTime = family.PreferredContactTime;
+      if (family.PreferredContactNotes) updates.PreferredContactNotes = family.PreferredContactNotes;
+      if (family.RecruitmentMethod) updates.RecruitmentMethod = normalizeRecruitmentMethod(family.RecruitmentMethod);
+      if (family.BrochureSeen) updates.BrochureSeen = family.BrochureSeen;
+      if (family.BrochureLocation) updates.BrochureLocation = normalizeBrochureLocation(family.BrochureLocation);
+      if (Object.keys(updates).length) await existingFamily.update(updates);
+      savedFamily = existingFamily;
+    } else {
+      const familyData = { ...family };
+      delete familyData.DoBSecondary;
+      if (familyData.RecruitmentMethod) {
+        familyData.RecruitmentMethod = normalizeRecruitmentMethod(familyData.RecruitmentMethod);
+      }
+      if (familyData.BrochureLocation) {
+        familyData.BrochureLocation = normalizeBrochureLocation(familyData.BrochureLocation);
+      }
+      savedFamily = await model.family.create(familyData);
+    }
+
+    // Add children not already present (deduplicate by Name+DoB)
+    const existingChildren = savedFamily.Children || [];
+    let addedAny = false;
+    for (const child of children) {
+      if (!child.Name && !child.DoB) continue;
+      const isDuplicate = existingChildren.some(
+        (ec) => ec.Name === child.Name && ec.DoB === child.DoB
+      );
+      if (isDuplicate) {
+        nOfSkip += 1;
+        skipList.push({ Email: family.Email, Name: child.Name, DoB: child.DoB });
+        continue;
+      }
+      const existingCount = existingChildren.length + (addedAny ? 1 : 0);
+      await model.child.create({
+        ...child,
+        FK_Family: savedFamily.id,
+        IdWithinFamily: ALPHABET[existingCount] || null,
+      });
+      addedAny = true;
+    }
+
+    nOfAdded += 1;
+  }
+
+  return { nOfAdded, nOfSkip, skipList, doubleCheckList };
+}
+
 module.exports = {
   childInclude,
   appointmentInclude,
   scheduleInclude,
   batchImportFamilies,
+  importIntakeForms,
 };

@@ -21,7 +21,7 @@
           @click="followupSearch"
           prepend-icon="mdi-phone-clock"
         >
-          Follow-ups
+          Follow-ups (Individuals & Families)
         </v-btn>
         <v-btn
           color="success"
@@ -30,7 +30,7 @@
           @click="addFamily"
           prepend-icon="mdi-account-multiple-plus"
         >
-          New Family
+          New Household
         </v-btn>
 
         <v-btn
@@ -54,7 +54,7 @@
           v-if="['Admin', 'PI', 'Lab manager'].includes(store.role)"
           prepend-icon="mdi-delete"
         >
-          Delete Family
+          Delete Household
         </v-btn>
 
         <v-spacer></v-spacer>
@@ -67,7 +67,7 @@
           :disabled="!currentFamily.id"
           prepend-icon="mdi-pencil"
         >
-          Edit Family
+          Edit Household
         </v-btn>
 
         <v-btn
@@ -92,7 +92,7 @@
             :disabled="page <= 1"
           ></v-btn>
           <span class="text-body-2 font-weight-bold mx-3"
-            >Family {{ page }} / {{ Families ? Families.length : 0 }}</span
+            >{{ resultEntityLabelSingular }} {{ page }} / {{ Families ? Families.length : 0 }}</span
           >
           <v-btn
             icon="mdi-chevron-right"
@@ -146,20 +146,20 @@
         border="start"
         class="mx-4 mb-3"
       >
-        This search returned {{ familySearchTotal }} families. Refine the search filters
+        This search returned {{ familySearchTotal }} {{ resultEntityLabelPlural }}. Refine the search filters
         if you need a narrower result set.
       </v-alert>
     </v-card>
 
     <v-row class="mt-4 mx-n1" style="align-items: stretch">
-      <!-- LEFT COLUMN: Search + Family Info -->
+      <!-- LEFT COLUMN: Search + Household Info -->
       <v-col cols="12" md="5" class="d-flex px-1">
         <v-card
           class="ds-card h-100 d-flex flex-column"
           variant="flat"
           style="position: relative; overflow: hidden; height: 500px; width: 100%"
         >
-          <!-- Background Family ID -->
+          <!-- Background Household ID -->
           <div
             style="
               position: absolute;
@@ -200,7 +200,7 @@
                       class="text-subtitle-2 text-muted d-flex align-center"
                       style="gap: 4px"
                     >
-                      Family ID: {{ currentFamily.id || "—" }}
+                      Household ID: {{ currentFamily.id || "—" }}
                       <v-btn
                         v-if="currentFamily.id"
                         icon="mdi-content-copy"
@@ -236,13 +236,14 @@
                     {{ currentFamily.RacePrimary }}
                   </v-chip>
                   <v-chip
+                    v-for="(method, idx) in parseJsonArray(currentFamily.RecruitmentMethod)"
+                    :key="idx"
                     size="small"
                     variant="outlined"
                     color="tertiary"
                     prepend-icon="mdi-hospital-building"
-                    v-if="currentFamily.RecruitmentMethod"
                   >
-                    {{ currentFamily.RecruitmentMethod }}
+                    {{ recruitmentMethodLabel(method) }}
                   </v-chip>
                   <v-chip
                     size="small"
@@ -490,9 +491,9 @@
             <v-icon size="64" color="grey-lighten-2" class="mb-4"
               >mdi-home-search-outline</v-icon
             >
-            <div class="text-h6 text-muted font-weight-bold mb-2">No Family Selected</div>
+            <div class="text-h6 text-muted font-weight-bold mb-2">No Household Selected</div>
             <div class="text-body-2 text-muted px-4">
-              Click "Search" above to find a family, or use the navigation arrows if you
+              Click "Search" above to find a household, or use the navigation arrows if you
               have already searched.
             </div>
             <v-btn
@@ -502,7 +503,7 @@
               @click="searchMode"
               prepend-icon="mdi-magnify"
             >
-              Search Families
+              Search Households
             </v-btn>
           </v-card-text>
         </v-card>
@@ -518,7 +519,7 @@
               class="text-h6 font-weight-bold"
               style="font-family: var(--ds-font-family-heading)"
             >
-              {{ editedIndex === -1 ? "Add a new family" : "Edit family information" }}
+              {{ editedIndex === -1 ? "Add a new household" : "Edit household information" }}
               <span
                 v-if="editedIndex !== -1"
                 class="text-subtitle-1 text-muted ml-2 font-weight-regular"
@@ -537,84 +538,285 @@
 
           <v-card-text class="pt-6 pb-2" style="max-height: 70vh">
             <v-form ref="form" v-model="valid" lazy-validation>
-              <div class="mb-6">
-                <div
-                  class="text-caption font-weight-bold text-uppercase text-muted mb-3 px-1"
-                >
-                  Family Information
-                </div>
-                <v-row dense>
-                  <v-col
-                    cols="12"
-                    :sm="item.width === '12' ? 12 : 6"
-                    :md="item.width"
-                    v-for="item in familyBasicInfo"
-                    :key="item.label"
-                  >
-                    <div v-if="item.options">
-                      <v-combobox
-                        v-if="item.field !== 'AutismHistory'"
-                        class="textfield-family mb-2"
-                        v-model="editedItem[item.field]"
-                        :items="Options[item.options]"
-                        variant="outlined"
-                        :label="item.label"
-                        density="compact"
-                        hide-details
-                      ></v-combobox>
-                      <v-select
-                        v-else
-                        class="textfield-family mb-2"
-                        v-model="editedItem[item.field]"
-                        :items="Options[item.options]"
-                        variant="outlined"
-                        :label="item.label"
-                        density="compact"
-                        hide-details
-                        item-title="title"
-                        item-value="value"
-                      ></v-select>
-                    </div>
-                    <div v-else>
-                      <v-text-field
-                        class="textfield-family mb-2"
-                        :label="item.label"
-                        v-model="editedItem[item.field]"
-                        :rules="item.rules ? $rules[item.rules] : []"
-                        variant="outlined"
-                        hide-details="auto"
-                        density="compact"
-                      ></v-text-field>
-                    </div>
-                  </v-col>
-                </v-row>
-              </div>
+              <v-alert type="info" variant="tonal" density="compact" class="mb-4" border="start">
+                The primary contact is the individual who completed the Prospective Participant Sign Up Form.
+                <strong>A first &amp; last name for at least one individual along with their mailing address or email address are required to create a household record in ObCRC.</strong>
+              </v-alert>
 
-              <div class="mb-4">
-                <div
-                  class="text-caption font-weight-bold text-uppercase text-muted mb-3 px-1"
-                >
-                  Contact Information
+              <div class="mb-6">
+                <div class="d-flex align-center mb-2 px-1" style="gap: 8px">
+                  <div class="text-caption font-weight-bold text-uppercase text-muted">Primary Contact</div>
+                  <v-chip size="x-small" color="primary" variant="tonal">Required fields marked *</v-chip>
                 </div>
                 <v-row dense>
-                  <v-col
-                    cols="12"
-                    :sm="item.width === '12' ? 12 : 6"
-                    :md="item.width"
-                    v-for="item in familyContactInfo"
-                    :key="item.label"
-                  >
+                  <v-col cols="12" md="6">
                     <v-text-field
                       class="textfield-family mb-2"
-                      :label="item.label"
-                      v-model="editedItem[item.field]"
-                      :rules="item.rules ? $rules[item.rules] : []"
+                      label="Primary Contact Name *"
+                      v-model="editedItem.NamePrimary"
+                      :rules="[...$rules.required, ...$rules.name]"
+                      variant="outlined"
+                      hide-details="auto"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-menu v-model="dobMenuPrimary" :close-on-content-click="false" location="bottom start">
+                      <template v-slot:activator="{ props: menuProps }">
+                        <v-text-field
+                          v-model="editedItem.DoBPrimary"
+                          label="Primary Contact Date of Birth"
+                          variant="outlined"
+                          density="compact"
+                          hide-details="auto"
+                          class="mb-2"
+                          placeholder="YYYY-MM-DD"
+                        >
+                          <template v-slot:append-inner>
+                            <v-icon v-bind="menuProps" style="cursor:pointer">mdi-calendar</v-icon>
+                          </template>
+                        </v-text-field>
+                      </template>
+                      <v-date-picker
+                        v-model="dobPickerPrimaryDate"
+                        @update:model-value="onDobPrimaryPickerEdit"
+                        hide-header
+                        show-adjacent-months
+                      ></v-date-picker>
+                    </v-menu>
+                  </v-col>
+
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      class="textfield-family mb-2"
+                      label="Email"
+                      v-model="editedItem.Email"
+                      :rules="[emailOrAddressRequiredRule]"
+                      variant="outlined"
+                      hide-details="auto"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      class="textfield-family mb-2"
+                      label="Phone"
+                      v-model="editedItem.Phone"
+                      variant="outlined"
+                      hide-details="auto"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      class="textfield-family mb-2"
+                      label="Cell Phone"
+                      v-model="editedItem.CellPhone"
+                      variant="outlined"
+                      hide-details="auto"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+
+                  <v-col cols="12">
+                    <div class="text-caption font-weight-bold text-uppercase text-muted mb-1 mt-1">Preferred Contact Method</div>
+                    <div class="d-flex flex-wrap" style="gap: 6px;">
+                      <v-chip
+                        v-for="method in Options.preferredContactMethods" :key="method"
+                        size="small"
+                        :variant="(editedItem.PreferredContactMethods || []).includes(method) ? 'flat' : 'outlined'"
+                        :color="(editedItem.PreferredContactMethods || []).includes(method) ? 'primary' : 'default'"
+                        class="cursor-pointer mb-1"
+                        @click="toggleFamilyContactMethod(method)"
+                      >{{ method }}</v-chip>
+                    </div>
+                  </v-col>
+                  <v-col cols="12">
+                    <div class="text-caption font-weight-bold text-uppercase text-muted mb-1 mt-1">Preferred Contact Time</div>
+                    <div class="d-flex flex-wrap" style="gap: 6px;">
+                      <v-chip
+                        v-for="time in Options.preferredContactTimes" :key="time"
+                        size="small"
+                        :variant="familyContactTimesArray.includes(time) ? 'flat' : 'outlined'"
+                        :color="familyContactTimesArray.includes(time) ? 'primary' : 'default'"
+                        class="cursor-pointer mb-1"
+                        @click="toggleFamilyContactTime(time)"
+                      >{{ time }}</v-chip>
+                    </div>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-text-field
+                      class="textfield-family mb-2"
+                      label="Preferred Contact Notes"
+                      v-model="editedItem.PreferredContactNotes"
+                      variant="outlined"
+                      hide-details="auto"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-select
+                      class="textfield-family mb-2"
+                      v-model="editedItem.PrimaryGenderIdentity"
+                      :items="Options.genderIdentity"
+                      variant="outlined"
+                      label="Primary Contact Gender Identity (optional)"
+                      density="compact"
+                      hide-details
+                      item-title="title"
+                      item-value="value"
+                    ></v-select>
+                  </v-col>
+
+                  <v-col cols="12" md="4">
+                    <v-combobox
+                      class="textfield-family mb-2"
+                      v-model="editedItem.LanguagePrimary"
+                      :items="Options.language"
+                      variant="outlined"
+                      label="Primary Language (optional)"
+                      density="compact"
+                      hide-details
+                    ></v-combobox>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-combobox
+                      class="textfield-family mb-2"
+                      v-model="editedItem.RacePrimary"
+                      :items="Options.race"
+                      variant="outlined"
+                      label="Primary Race (optional)"
+                      density="compact"
+                      hide-details
+                    ></v-combobox>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      class="textfield-family mb-2"
+                      label="English % (optional)"
+                      v-model="editedItem.EnglishPercent"
+                      :rules="[englishPercentRule]"
+                      variant="outlined"
+                      hide-details="auto"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      class="textfield-family mb-2"
+                      label="Mailing Address"
+                      v-model="editedItem.Address"
+                      :rules="[addressOrEmailRequiredRule]"
                       variant="outlined"
                       hide-details="auto"
                       density="compact"
                     ></v-text-field>
                   </v-col>
                 </v-row>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-caption font-weight-bold text-uppercase text-muted mb-2">Health & Screening Info</div>
+                <v-row dense>
+                  <v-col cols="12" sm="6" md="4" v-for="item in Options.screeningFields" :key="item.field">
+                    <v-checkbox v-model="editedItem[item.field]" :label="item.label"
+                      density="compact" hide-details class="mb-1" color="primary"></v-checkbox>
+                  </v-col>
+                </v-row>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-caption font-weight-bold text-uppercase text-muted mb-2">How did they hear about us? <span class="font-weight-regular text-lowercase">(select all that apply)</span></div>
+                <div class="d-flex flex-wrap" style="gap: 8px">
+                  <v-chip
+                    v-for="opt in Options.recruitmentMethods"
+                    :key="opt.key"
+                    size="small"
+                    :variant="(editedItem.RecruitmentMethod || []).includes(opt.key) ? 'flat' : 'outlined'"
+                    :color="(editedItem.RecruitmentMethod || []).includes(opt.key) ? 'primary' : 'default'"
+                    @click="toggleRecruitmentMethod(opt.key)"
+                  >{{ opt.label }}</v-chip>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <v-btn
+                  v-if="!showSecondaryContact"
+                  variant="tonal"
+                  color="secondary"
+                  prepend-icon="mdi-plus"
+                  @click="showSecondaryContact = true"
+                >
+                  Add another adult household member (optional)
+                </v-btn>
+
+                <v-expand-transition>
+                  <div v-show="showSecondaryContact" class="mt-3">
+                    <div class="d-flex align-center mb-2 px-1" style="gap: 8px">
+                      <div class="text-caption font-weight-bold text-uppercase text-muted">Secondary Contact</div>
+                      <v-chip size="x-small" variant="outlined" color="secondary">Optional</v-chip>
+                      <v-spacer></v-spacer>
+                      <v-btn
+                        variant="text"
+                        color="secondary"
+                        size="small"
+                        @click="showSecondaryContact = false"
+                      >
+                        Hide
+                      </v-btn>
+                    </div>
+                    <v-row dense>
+                      <v-col cols="12" md="6">
+                        <v-text-field
+                          class="textfield-family mb-2"
+                          label="Secondary Contact Name"
+                          v-model="editedItem.NameSecondary"
+                          :rules="$rules.name"
+                          variant="outlined"
+                          hide-details="auto"
+                          density="compact"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-select
+                          class="textfield-family mb-2"
+                          v-model="editedItem.SecondaryGenderIdentity"
+                          :items="Options.genderIdentity"
+                          variant="outlined"
+                          label="Secondary Contact Gender Identity"
+                          density="compact"
+                          hide-details
+                          item-title="title"
+                          item-value="value"
+                        ></v-select>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-combobox
+                          class="textfield-family mb-2"
+                          v-model="editedItem.LanguageSecondary"
+                          :items="Options.language"
+                          variant="outlined"
+                          label="Secondary Language (optional)"
+                          density="compact"
+                          hide-details
+                        ></v-combobox>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-combobox
+                          class="textfield-family mb-2"
+                          v-model="editedItem.RaceSecondary"
+                          :items="Options.race"
+                          variant="outlined"
+                          label="Secondary Race (optional)"
+                          density="compact"
+                          hide-details
+                        ></v-combobox>
+                      </v-col>
+                    </v-row>
+                  </div>
+                </v-expand-transition>
               </div>
             </v-form>
           </v-card-text>
@@ -627,7 +829,7 @@
               variant="flat"
               @click="save"
               prepend-icon="mdi-content-save"
-              >Save Family</v-btn
+              >Save Household</v-btn
             >
           </v-card-actions>
         </v-card>
@@ -642,7 +844,7 @@
             <span
               class="text-h6 font-weight-bold"
               style="font-family: var(--ds-font-family-heading)"
-              >Search Families</span
+              >Search Households</span
             >
             <v-btn
               icon="mdi-close"
@@ -713,7 +915,7 @@
               @click="searchFamily"
               prepend-icon="mdi-magnify"
             >
-              Find Families
+              Find Households
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -752,6 +954,9 @@
                   style="line-height: 1.4; opacity: 1"
                 >
                   {{ currentFamily.NamePrimary || "Not provided" }}
+                  <span v-if="currentFamily.PrimaryGenderIdentity">
+                    | Gender Identity: {{ currentFamily.PrimaryGenderIdentity }}</span
+                  >
                 </v-list-item-subtitle>
               </v-list-item>
 
@@ -761,13 +966,16 @@
                 v-if="currentFamily.NameSecondary"
               >
                 <v-list-item-title class="text-caption text-muted"
-                  >Secondary Caregiver</v-list-item-title
+                  >Secondary Contact</v-list-item-title
                 >
                 <v-list-item-subtitle
                   class="font-weight-medium text-wrap mt-1"
                   style="line-height: 1.4; opacity: 1"
                 >
                   {{ currentFamily.NameSecondary }}
+                  <span v-if="currentFamily.SecondaryGenderIdentity">
+                    | Gender Identity: {{ currentFamily.SecondaryGenderIdentity }}</span
+                  >
                 </v-list-item-subtitle>
               </v-list-item>
 
@@ -824,13 +1032,35 @@
 
               <v-list-item prepend-icon="mdi-hospital-building" class="px-2">
                 <v-list-item-title class="text-caption text-muted"
-                  >Recruitment Method</v-list-item-title
+                  >Recruitment</v-list-item-title
                 >
                 <v-list-item-subtitle
                   class="font-weight-medium text-wrap mt-1"
                   style="line-height: 1.4; opacity: 1"
                 >
-                  {{ currentFamily.RecruitmentMethod || "Not specified" }}
+                  <div v-if="parseJsonArray(currentFamily.RecruitmentMethod).length">
+                    <v-chip
+                      v-for="(method, idx) in parseJsonArray(currentFamily.RecruitmentMethod)"
+                      :key="idx"
+                      size="small"
+                      class="mr-1 mb-1"
+                    >{{ recruitmentMethodLabel(method) }}</v-chip>
+                  </div>
+                  <span v-else>Not specified</span>
+                  <div v-if="currentFamily.BrochureSeen" class="mt-1">
+                    Brochure/flyer seen: {{ currentFamily.BrochureSeen }}
+                  </div>
+                  <div v-if="currentFamily.BrochureLocation" class="mt-1">
+                    <span class="text-caption text-muted">Where:</span>
+                    <v-chip
+                      v-for="(loc, idx) in parseJsonArray(currentFamily.BrochureLocation)"
+                      :key="'loc'+idx"
+                      size="small"
+                      class="mt-1 mr-1"
+                    >
+                      {{ loc }}
+                    </v-chip>
+                  </div>
                 </v-list-item-subtitle>
               </v-list-item>
 
@@ -879,7 +1109,7 @@
           >
           <div class="text-h6 text-muted font-weight-bold">Child Information</div>
           <div class="text-body-2 text-muted px-4 text-center mt-2">
-            Children associated with the family will appear here.
+            Children whose caregiver provided their name and birth date in the intake form will appear here.
           </div>
         </v-card>
       </v-col>
@@ -904,20 +1134,20 @@
           <v-icon size="64" color="grey-lighten-2" class="mb-4">mdi-forum-outline</v-icon>
           <div class="text-h6 text-muted font-weight-bold">Notes & Conversations</div>
           <div class="text-body-2 text-muted px-4 text-center mt-2">
-            Select a family to view their communication history.
+            Select a household to view communication history.
           </div>
         </v-card>
       </v-col>
     </v-row>
 
-    <!-- Delete Family Dialog -->
+    <!-- Delete Household Dialog -->
     <v-dialog v-model="deleteFamilyDialog" max-width="500px">
       <v-card class="ds-card" variant="flat">
         <v-card-title class="text-h6 font-weight-bold bg-error text-white py-3">
-          Delete Family?
+          Delete Household?
         </v-card-title>
         <v-card-text class="pt-6 pb-2">
-          Are you sure you want to delete this family? This action will remove the family,
+          Are you sure you want to delete this household? This action will remove the household,
           associated children, and appointments from the database completely. This action
           cannot be undone.
         </v-card-text>
@@ -1373,6 +1603,9 @@ export default {
       scheduleToDelete: null,
       isDeletingTimelineSchedule: false,
       dialog: false,
+      showSecondaryContact: false,
+      dobMenuPrimary: false,
+      dobPickerPrimaryDate: null,
       valid: true,
       editedIndex: -1,
       editedItem: {
@@ -1381,15 +1614,27 @@ export default {
         Phone: null,
         CellPhone: null,
         NamePrimary: null,
+        PrimaryGenderIdentity: null,
+        DoBPrimary: null,
         NameSecondary: null,
+        SecondaryGenderIdentity: null,
         Address: null,
         LanguagePrimary: null,
         LanguageSecondary: null,
         EnglishPercent: null,
+        PreferredContactMethods: [],
+        PreferredContactTime: null,
+        PreferredContactNotes: null,
         RacePrimary: null,
         RaceSecondary: null,
+        AutismHistory: null,
+        ASD: null,
+        PrematureBirth: null,
+        VisionLoss: null,
+        HearingLoss: null,
+        Illness: null,
         Vehicle: null,
-        RecruitmentMethod: null,
+        RecruitmentMethod: [],
         NextContactDate: null,
         Note: null,
       },
@@ -1399,15 +1644,29 @@ export default {
         Phone: null,
         CellPhone: null,
         NamePrimary: null,
+        PrimaryGenderIdentity: null,
+        DoBPrimary: null,
         NameSecondary: null,
+        SecondaryGenderIdentity: null,
         Address: null,
         LanguagePrimary: null,
         LanguageSecondary: null,
         EnglishPercent: null,
+        PreferredContactMethods: [],
+        PreferredContactTime: null,
+        PreferredContactNotes: null,
         RacePrimary: null,
         RaceSecondary: null,
+        AutismHistory: null,
+        ASD: null,
+        PrematureBirth: null,
+        VisionLoss: null,
+        HearingLoss: null,
+        Illness: null,
         Vehicle: null,
-        RecruitmentMethod: null,
+        RecruitmentMethod: [],
+        BrochureSeen: null,
+        BrochureLocation: null,
         NextContactDate: null,
         Note: null,
         scheduled: false,
@@ -1418,15 +1677,26 @@ export default {
         Phone: null,
         CellPhone: null,
         NamePrimary: null,
+        PrimaryGenderIdentity: null,
+        DoBPrimary: null,
         NameSecondary: null,
+        SecondaryGenderIdentity: null,
         Address: null,
         LanguagePrimary: null,
         LanguageSecondary: null,
         EnglishPercent: null,
+        PreferredContactMethods: [],
+        PreferredContactTime: null,
+        PreferredContactNotes: null,
         RacePrimary: null,
         RaceSecondary: null,
+        AutismHistory: null,
+        ASD: null,
+        PrematureBirth: null,
+        VisionLoss: null,
+        HearingLoss: null,
+        Illness: null,
         Vehicle: null,
-        RecruitmentMethod: null,
         NextContactDate: null,
         Note: null,
         scheduled: false,
@@ -1448,7 +1718,7 @@ export default {
           width: "3",
           searchable: true,
         },
-        { label: "Family ID", field: "id", width: "2", searchable: true },
+        { label: "Household ID", field: "id", width: "2", searchable: true },
         {
           label: "Primary Caregiver",
           field: "NamePrimary",
@@ -1462,21 +1732,21 @@ export default {
           width: "4",
           options: "language",
         },
-        { label: "Race (P)", field: "RacePrimary", width: "3", options: "race" },
+        { label: "Race (Primary)", field: "RacePrimary", width: "3", options: "race" },
         {
-          label: "Secondary Caregiver",
+          label: "Secondary Contact",
           field: "NameSecondary",
           width: "4",
           rules: "name",
           searchable: true,
         },
         {
-          label: "Language (S)",
+          label: "Language (Secondary)",
           field: "LanguageSecondary",
           width: "4",
           options: "language",
         },
-        { label: "Race (S)", field: "RaceSecondary", width: "3", options: "race" },
+        { label: "Race (Secondary)", field: "RaceSecondary", width: "3", options: "race" },
         { label: "Vehicle", field: "Vehicle", width: "5" },
         { label: "Address", field: "Address", width: "5" },
         { label: "English %", width: "2", field: "EnglishPercent" },
@@ -1501,33 +1771,51 @@ export default {
       ],
       familyBasicInfo: [
         {
-          label: "Primary Caregiver",
+          label: "Primary Contact",
           field: "NamePrimary",
           rules: "name",
-          width: "4",
+          width: "12",
           searchable: true,
         },
         {
-          label: "Language (P)",
+          label: "Primary Contact Gender Identity",
+          field: "PrimaryGenderIdentity",
+          width: "4",
+          options: "genderIdentity",
+        },
+        {
+          label: "Primary Contact Birthdate",
+          field: "DoBPrimary",
+          rules: "date",
+          width: "4",
+        },
+        {
+          label: "Language (Primary)",
           field: "LanguagePrimary",
           width: "4",
           options: "language",
         },
-        { label: "Race (P)", field: "RacePrimary", width: "3", options: "race" },
+        { label: "Race (Primary)", field: "RacePrimary", width: "3", options: "race" },
         {
-          label: "Secondary Caregiver",
+          label: "Secondary Contact",
           field: "NameSecondary",
-          width: "4",
+          width: "12",
           rules: "name",
           searchable: true,
         },
         {
-          label: "Language (S)",
+          label: "Secondary Contact Gender Identity",
+          field: "SecondaryGenderIdentity",
+          width: "4",
+          options: "genderIdentity",
+        },
+        {
+          label: "Language (Secondary)",
           field: "LanguageSecondary",
           width: "4",
           options: "language",
         },
-        { label: "Race (S)", field: "RaceSecondary", width: "3", options: "race" },
+        { label: "Race (Secondary)", field: "RaceSecondary", width: "3", options: "race" },
         { label: "English %", width: "3", field: "EnglishPercent" },
         { label: "Postal Code", field: "Address", width: "3" },
         {
@@ -1552,8 +1840,8 @@ export default {
         {
           category: "General Identification",
           fields: [
-            { label: "Family ID", field: "id", width: "4" },
-            { label: "Caregiver Name", field: "NamePrimary", width: "4" },
+            { label: "Household ID", field: "id", width: "4" },
+            { label: "Primary Contact", field: "NamePrimary", width: "4" },
             { label: "Child Name", field: "childName", width: "4" },
           ],
         },
@@ -1571,16 +1859,126 @@ export default {
           { title: "No", value: 0 },
           { title: "Unknown", value: null },
         ],
-        sex: ["F", "M"],
-        language: ["English", "French", "Chinese", "Spanish", "Hindi"],
+        sex: [
+          { title: "Female", value: "F" },
+          { title: "Male", value: "M" },
+          { title: "Intersex", value: "I" },
+        ],
+        genderIdentity: [
+          { title: "Female", value: "Female" },
+          { title: "Male", value: "Male" },
+          { title: "Non-Binary", value: "Non-Binary" },
+          { title: "Gender Fluid", value: "Gender Fluid" },
+          { title: "Transgender", value: "Transgender" },
+          { title: "Prefer Not to Say", value: "Prefer Not to Say" },
+          { title: "Not Applicable", value: "Not Applicable" },
+        ],
+        language: ["English", "French", "Chinese", "Spanish", "Hindi", "Other"],
+        preferredContactMethods: ["Email", "Text message", "Phone call", "Other"],
+        preferredContactTimes: [
+          "Morning (9am-11am)",
+          "Afternoon (12pm-3pm)",
+          "Evening (3pm-6pm)",
+        ],
         race: ["Indian", "Asian", "African", "Hispanic", "Caucasian", "Arabic"],
-        recruitmentMethod: ["Hospital", "Events", "SocialMedia", "PreviousParticipation"],
+        recruitmentMethods: [
+          { label: "Community Event (tabling, Farmer's Market, etc.)", key: "CommunityEvent" },
+          { label: "OberlinKids Referral", key: "OberlinKidsReferral" },
+          { label: "Social Media", key: "SocialMedia" },
+          { label: "Lab Website", key: "Lab website" },
+          { label: "Previous Participation in Oberlin Research", key: "PreviousParticipation" },
+          { label: "Other", key: "Other" },
+        ],
+        screeningFields: [
+          { label: "ASD diagnosis?", field: "ASD" },
+          { label: "Born prematurely?", field: "PrematureBirth" },
+          { label: "Vision deficit?", field: "VisionLoss" },
+          { label: "Hearing deficit?", field: "HearingLoss" },
+          { label: "Other illness?", field: "Illness" },
+        ],
         studyType: ["Behavioural", "EEG/ERP", "EyeTracking", "fNIRS", "Online"],
       },
     };
   },
 
   methods: {
+    hasSecondaryContactData() {
+      return Boolean(
+        this.editedItem?.NameSecondary ||
+        this.editedItem?.SecondaryGenderIdentity ||
+        this.editedItem?.LanguageSecondary ||
+        this.editedItem?.RaceSecondary
+      );
+    },
+
+    toggleFamilyContactMethod(method) {
+      if (!this.editedItem.PreferredContactMethods) this.editedItem.PreferredContactMethods = [];
+      const i = this.editedItem.PreferredContactMethods.indexOf(method);
+      if (i >= 0) this.editedItem.PreferredContactMethods.splice(i, 1);
+      else this.editedItem.PreferredContactMethods.push(method);
+    },
+
+    toggleRecruitmentMethod(key) {
+      if (!Array.isArray(this.editedItem.RecruitmentMethod)) this.editedItem.RecruitmentMethod = [];
+      const i = this.editedItem.RecruitmentMethod.indexOf(key);
+      if (i >= 0) this.editedItem.RecruitmentMethod.splice(i, 1);
+      else this.editedItem.RecruitmentMethod.push(key);
+    },
+
+    toggleFamilyContactTime(time) {
+      const current = this.familyContactTimesArray;
+      const updated = current.includes(time)
+        ? current.filter(t => t !== time)
+        : [...current, time];
+      this.editedItem.PreferredContactTime = updated.join(', ');
+    },
+
+    parseJsonArray(value) {
+      if (!value) return [];
+      if (Array.isArray(value)) return value;
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        return [value]; // plain string — treat as single item
+      }
+    },
+
+    // Converts "CommunityEvent" → "Community Event", "Lab website" → "Lab website"
+    recruitmentMethodLabel(key) {
+      if (!key) return key;
+      return key.replace(/([A-Z])/g, ' $1').trim();
+    },
+
+    phoneOrCellRequiredRule(value) {
+      if (value || this.editedItem.CellPhone) return true;
+      return "Provide Phone or Cell Phone.";
+    },
+
+    cellOrPhoneRequiredRule(value) {
+      if (value || this.editedItem.Phone) return true;
+      return "Provide Phone or Cell Phone.";
+    },
+
+    englishPercentRule(value) {
+      if (value === null || value === undefined || value === "") return true;
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed < 0 || parsed > 100) {
+        return "Enter an integer between 0 and 100.";
+      }
+      return true;
+    },
+
+    emailOrAddressRequiredRule(value) {
+      if (value || this.editedItem.Address) return true;
+      return "Provide either Email or Mailing Address.";
+    },
+
+    addressOrEmailRequiredRule(value) {
+      if (value || this.editedItem.Email) return true;
+      return "Provide either Mailing Address or Email.";
+    },
+
     copyToClipboard(text) {
       if (!text) return;
       navigator.clipboard.writeText(String(text)).catch(() => {
@@ -1854,7 +2252,7 @@ export default {
         this.resetCurrentFamily();
         this.$refs.confirmD.open(
           "No Results",
-          Results.data.message || "No family needs to be followed up.",
+          Results.data.message || "No individual or family needs to be followed up.",
           { color: "warning", noconfirm: true }
         );
       }
@@ -1911,32 +2309,81 @@ export default {
       }
       this.editedIndex = -1;
       this.editedItem = Object.assign({}, this.familyTemplate);
+      this.showSecondaryContact = false;
+      this.dobMenuPrimary = false;
+      this.dobPickerPrimaryDate = null;
       this.dialog = true;
     },
 
     editFamily() {
       this.editedIndex = this.Families.indexOf(this.currentFamily);
       this.editedItem = Object.assign({}, this.currentFamily);
+      this.showSecondaryContact = this.hasSecondaryContactData();
+      // Deserialize stored arrays
+      if (typeof this.editedItem.PreferredContactMethods === 'string') {
+        try {
+          this.editedItem.PreferredContactMethods = JSON.parse(this.editedItem.PreferredContactMethods);
+        } catch (e) {
+          this.editedItem.PreferredContactMethods = [];
+        }
+      }
+      if (typeof this.editedItem.RecruitmentMethod === 'string') {
+        try {
+          this.editedItem.RecruitmentMethod = JSON.parse(this.editedItem.RecruitmentMethod) || [];
+        } catch (e) {
+          this.editedItem.RecruitmentMethod = [];
+        }
+      }
+      if (this.editedItem.DoBPrimary) {
+        this.editedItem.DoBPrimary = moment(this.editedItem.DoBPrimary).format("YYYY-MM-DD");
+        this.dobPickerPrimaryDate = new Date(this.editedItem.DoBPrimary + "T12:00:00");
+      } else {
+        this.dobPickerPrimaryDate = null;
+      }
       this.dialog = true;
     },
 
+    onDobPrimaryPickerEdit(date) {
+      if (!date) return;
+      const d = new Date(date);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      this.editedItem.DoBPrimary = `${yyyy}-${mm}-${dd}`;
+      this.dobMenuPrimary = false;
+    },
+
     async save() {
+      if (this.$refs.form) {
+        const result = await this.$refs.form.validate();
+        if (!result.valid) return;
+      }
+
       try {
         if (this.editedIndex > -1) {
           this.editedItem.UpdatedBy = this.store.userID;
           delete this.editedItem.Schedules;
           delete this.editedItem.Children;
           delete this.editedItem.Conversations;
-
+          // Serialize contact prefs before saving
+          if (Array.isArray(this.editedItem.PreferredContactMethods))
+            this.editedItem.PreferredContactMethods = JSON.stringify(this.editedItem.PreferredContactMethods);
+          if (Array.isArray(this.editedItem.RecruitmentMethod))
+            this.editedItem.RecruitmentMethod = JSON.stringify(this.editedItem.RecruitmentMethod);
           await family.update(this.editedItem);
           Object.assign(this.Families[this.editedIndex], this.editedItem);
-          console.log("Family information updated!");
+          console.log("Household information updated!");
         } else {
           this.editedItem.LastContactDate = new Date();
           this.editedItem.NextContactDate = new Date();
           this.editedItem.UpdatedBy = this.store.userID;
           this.editedItem.CreatedBy = this.store.userID;
           this.editedItem.TrainingSet = this.store.trainingMode;
+          // Serialize contact prefs before saving
+          if (Array.isArray(this.editedItem.PreferredContactMethods))
+            this.editedItem.PreferredContactMethods = JSON.stringify(this.editedItem.PreferredContactMethods);
+          if (Array.isArray(this.editedItem.RecruitmentMethod))
+            this.editedItem.RecruitmentMethod = JSON.stringify(this.editedItem.RecruitmentMethod);
 
           const newfamilyId = await family.create(this.editedItem);
           this.editedItem.id = newfamilyId.data.id;
@@ -1966,12 +2413,12 @@ export default {
           } else {
             this.$refs.confirmD.open(
               "Error",
-              "Failed to save family. Please check your input and try again.",
+              "Failed to save household. Please check your input and try again.",
               { color: "error", noconfirm: true }
             );
           }
         } else {
-          this.$refs.confirmD.open("Error", "Failed to save family. Please try again.", {
+          this.$refs.confirmD.open("Error", "Failed to save household. Please try again.", {
             color: "error",
             noconfirm: true,
           });
@@ -1981,8 +2428,11 @@ export default {
 
     close() {
       this.dialog = false;
+      this.showSecondaryContact = false;
+      this.dobMenuPrimary = false;
       setTimeout(() => {
         this.editedItem = Object.assign({}, this.familyTemplate);
+        this.dobPickerPrimaryDate = null;
         this.editedIndex = -1;
       }, 300);
     },
@@ -2093,8 +2543,8 @@ export default {
           this.currentFamily = Object.assign({}, this.familyTemplate);
         }
       } catch (error) {
-        console.error("Family delete error:", error);
-        alert("Failed to delete family.");
+        console.error("Household delete error:", error);
+        alert("Failed to delete household.");
       } finally {
         this.isDeletingFamily = false;
       }
@@ -2214,6 +2664,18 @@ export default {
   },
 
   computed: {
+    familyContactTimesArray() {
+      const raw = this.editedItem.PreferredContactTime;
+      if (!raw) return [];
+      if (Array.isArray(raw)) return raw;
+      return raw.split(',').map(s => s.trim()).filter(Boolean);
+    },
+    resultEntityLabelSingular() {
+      return this.familySearchMode === "followup" ? "Record" : "Family";
+    },
+    resultEntityLabelPlural() {
+      return this.familySearchMode === "followup" ? "individuals or families" : "families";
+    },
     showFamilySearchPagination() {
       return this.familySearchActive && this.familySearchTotal > 0;
     },

@@ -117,7 +117,7 @@ export default {
     async dateTimeValidation() {
       const isValid = this.dateValue && this.hourValue !== null && this.minuteValue !== null;
       this.studyDateTimeReady = isValid;
-      this.$emit("readyToCreateSchedule");
+      this.$emit("readyToCreateSchedule", this.studyDateTimeReady);
     },
 
     resetDateTime() {

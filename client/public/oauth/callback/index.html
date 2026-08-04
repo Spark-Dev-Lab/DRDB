@@ -56,8 +56,13 @@
       if (window.opener) {
         try {
           window.opener.postMessage(
-            { type: 'GOOGLE_OAUTH_CODE', code: code },
-            window.location.origin
+            {
+              type: 'GOOGLE_OAUTH_CODE',
+              source: 'drdb-oauth-callback',
+              code: code,
+              callbackOrigin: window.location.origin,
+            },
+            '*'
           );
 
           card.innerHTML =

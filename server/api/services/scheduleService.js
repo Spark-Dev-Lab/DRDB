@@ -3,6 +3,109 @@ const { Op } = require("sequelize");
 const Sequelize = require("sequelize");
 const moment = require("moment");
 const calendarService = require("./googleCalendarService");
+const { getParticipantContext } = require("../utils/participantContext");
+const ParticipantTypes = require("../utils/participantTypes");
+
+function getParticipantLabelForSummary(appointment) {
+  const studyName = appointment && appointment.Study && appointment.Study.StudyName ? appointment.Study.StudyName : "Study";
+  const context = getParticipantContext({ appointment });
+  const familyId = appointment?.FK_Family || context.primaryContact?.id || context.participant?.id;
+
+  if (context.participantType === "Child" && appointment?.Child?.IdWithinFamily && familyId) {
+    return `${studyName} (${familyId}${appointment.Child.IdWithinFamily})`;
+  }
+  if (familyId) {
+    return `${studyName} (${familyId})`;
+  }
+  return studyName;
+}
+
+function createValidationError(message) {
+  const error = new Error(message);
+  error.status = 400;
+  return error;
+}
+
+function hasChildId(appointment) {
+  return (
+    appointment?.FK_Child !== null &&
+    appointment?.FK_Child !== undefined &&
+    appointment?.FK_Child !== ""
+  );
+}
+
+function validateAppointmentParticipantRequirements(
+  appointments,
+  participantTypeByStudyId,
+  { defaultFamilyId = null } = {}
+) {
+  if (!Array.isArray(appointments) || appointments.length === 0) {
+    return;
+  }
+
+  appointments.forEach((appointment, index) => {
+    const studyId = Number(appointment?.FK_Study);
+    if (!Number.isInteger(studyId) || studyId <= 0) {
+      throw createValidationError(
+        `Appointment at index ${index} is missing a valid FK_Study.`
+      );
+    }
+
+    const participantType = participantTypeByStudyId.get(studyId);
+    if (!participantType) {
+      throw createValidationError(
+        `Study ${studyId} was not found while validating appointment at index ${index}.`
+      );
+    }
+
+    const resolvedFamilyId = appointment?.FK_Family ?? defaultFamilyId;
+    if (!Number.isInteger(Number(resolvedFamilyId)) || Number(resolvedFamilyId) <= 0) {
+      throw createValidationError(
+        `Appointment at index ${index} is missing a valid FK_Family.`
+      );
+    }
+
+    if (participantType === ParticipantTypes.CHILD && hasChildId(appointment)) {
+      return;
+    }
+  });
+}
+
+async function validateAppointmentsForPersistence(
+  appointments,
+  { defaultFamilyId = null } = {}
+) {
+  if (!Array.isArray(appointments) || appointments.length === 0) {
+    return;
+  }
+
+  const studyIds = Array.from(
+    new Set(
+      appointments
+        .map((appointment) => Number(appointment?.FK_Study))
+        .filter((studyId) => Number.isInteger(studyId) && studyId > 0)
+    )
+  );
+
+  const studies = await model.study.findAll({
+    where: { id: { [Op.in]: studyIds } },
+    attributes: ["id", "ParticipantType"],
+    raw: true,
+  });
+
+  const participantTypeByStudyId = new Map(
+    studies.map((study) => [
+      Number(study.id),
+      study.ParticipantType || ParticipantTypes.CHILD,
+    ])
+  );
+
+  validateAppointmentParticipantRequirements(
+    appointments,
+    participantTypeByStudyId,
+    { defaultFamilyId }
+  );
+}
 
 /**
  * Standardized Include Block for Schedule Queries
@@ -124,6 +227,8 @@ async function searchSchedules(queryString, options = {}) {
 }
 
 exports.searchSchedules = searchSchedules;
+exports.validateAppointmentParticipantRequirements = validateAppointmentParticipantRequirements;
+exports.validateAppointmentsForPersistence = validateAppointmentsForPersistence;
 
 async function searchSchedulesWithPagination(queryString, options = {}) {
   const schedules = await searchSchedules(queryString, options);
@@ -154,6 +259,10 @@ exports.searchSchedulesWithPagination = searchSchedulesWithPagination;
  */
 exports.createSchedule = async (newScheduleInfo, oAuth2Client, labId) => {
   newScheduleInfo.AppointmentTime = moment(newScheduleInfo.AppointmentTime).toISOString(true);
+
+  await validateAppointmentsForPersistence(newScheduleInfo.Appointments, {
+    defaultFamilyId: newScheduleInfo.FK_Family,
+  });
 
   // 1. Cleanup previously tentative appointments if they exist
   for (const app of newScheduleInfo.Appointments) {
@@ -208,6 +317,10 @@ exports.updateSchedule = async (updatedScheduleInfo, oAuth2Client, labId) => {
   if (updatedScheduleInfo.AppointmentTime) {
     updatedScheduleInfo.AppointmentTime = moment(updatedScheduleInfo.AppointmentTime).toISOString(true);
   }
+
+  await validateAppointmentsForPersistence(updatedScheduleInfo.Appointments, {
+    defaultFamilyId: updatedScheduleInfo.FK_Family,
+  });
 
   // 1. ALWAYS Process Appointments (Regardless of Schedule Status)
   let experimenterList = [];

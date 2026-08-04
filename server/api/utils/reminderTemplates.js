@@ -6,6 +6,8 @@
  */
 
 const moment = require("moment");
+const { getParticipantContext } = require("./participantContext");
+const { renderParticipantTemplate } = require("./templateRenderer");
 
 // ─── Shared table styles ───────────────────────────────────────────
 const TRO =
@@ -21,17 +23,22 @@ function rowStyle(index) {
 
 function childNames(Appointments) {
   var nameList = Appointments.map((appointment) => {
-    if (!!appointment.Child.Name) {
-      return appointment.Child.Name.split(" ")[0];
+    const context = getParticipantContext({ appointment });
+    if (!!context.participantName) {
+      return context.participantName.split(" ")[0];
     }
-  });
+    if (!!appointment.ParticipantName) {
+      return appointment.ParticipantName.split(" ")[0];
+    }
+    return null;
+  }).filter(Boolean);
 
   nameList = Array.from(new Set(nameList));
 
   if (nameList.length <= 2) {
     return nameList.join(" and ");
   }
-  return "your " + nameList.length + " children";
+  return "your " + nameList.length + " participants";
 }
 
 function formatedBody(emailBody) {
@@ -128,12 +135,17 @@ function buildFamilyReminderBody(schedule) {
     }
   }
 
+  const participantNames = childNames(schedule.Appointments);
+
   var body = schedule.Appointments[0].Study.ReminderTemplate.replace(
     /\${{ZoomLink}}/g,
     ZoomLink
   );
 
-  body = body.replace(/\${{childName}}/g, childNames(schedule.Appointments));
+  body = renderParticipantTemplate(body, {
+    participantName: participantNames,
+    primaryContactName: schedule.Family?.NamePrimary || "",
+  });
 
   if (schedule.Appointments[0].Study.StudyType === "Online") {
     body =
@@ -364,21 +376,21 @@ function buildExperimenterReminderBody(experimenter) {
         E22 = "not assigned";
       }
 
-      if (!appointmentPri.Child.Family.NamePrimary) {
-        appointmentPri.Child.Family.NamePrimary = "";
-      }
+      const contextPri = getParticipantContext({ appointment: appointmentPri });
 
       var parentName = "Parent Name N/A";
-      if (!!appointmentPri.Child.Family.NamePrimary) {
-        parentName = appointmentPri.Child.Family.NamePrimary.split(" ")[0];
+      if (!!contextPri.primaryContactName) {
+        parentName = contextPri.primaryContactName.split(" ")[0];
       }
+
+      const contact = contextPri.primaryContact || appointmentPri.Family || {};
 
       const parent =
         parentName +
         "<br>" +
-        PhoneFormated(appointmentPri.Child.Family.Phone) +
+        PhoneFormated(contact.Phone) +
         "<br>" +
-        appointmentPri.Child.Family.Email;
+        (contact.Email || "");
 
       const ZoomLink = experimenter.ZoomLink
         ? experimenter.ZoomLink
@@ -386,9 +398,9 @@ function buildExperimenterReminderBody(experimenter) {
 
       const style = rowStyle(index);
 
-      var childName = "Child name N/A";
-      if (appointmentPri.Child.Name) {
-        childName = appointmentPri.Child.Name.split(" ")[0];
+      var childName = "Participant name N/A";
+      if (contextPri.participantName) {
+        childName = contextPri.participantName.split(" ")[0];
       }
 
       body += "<tr>";
@@ -440,21 +452,21 @@ function buildExperimenterReminderBody(experimenter) {
         E1[0] = "E1: " + E1[0] + "<br>" + E22;
       }
 
-      if (!appointmentSec.Child.Family.NamePrimary) {
-        appointmentSec.Child.Family.NamePrimary = "";
-      }
+      const contextSec = getParticipantContext({ appointment: appointmentSec });
 
       var parentName = "Parent Name N/A";
-      if (!!appointmentSec.Child.Family.NamePrimary) {
-        parentName = appointmentSec.Child.Family.NamePrimary.split(" ")[0];
+      if (!!contextSec.primaryContactName) {
+        parentName = contextSec.primaryContactName.split(" ")[0];
       }
+
+      const contact = contextSec.primaryContact || appointmentSec.Family || {};
 
       const parent =
         parentName +
         "<br>" +
-        PhoneFormated(appointmentSec.Child.Family.Phone) +
+        PhoneFormated(contact.Phone) +
         "<br>" +
-        appointmentSec.Child.Family.Email;
+        (contact.Email || "");
 
       const ZoomLink = appointmentSec.PrimaryExperimenter[0].ZoomLink
         ? appointmentSec.PrimaryExperimenter[0].ZoomLink
@@ -462,9 +474,9 @@ function buildExperimenterReminderBody(experimenter) {
 
       const style = rowStyle(index);
 
-      var childName = "Child name N/A";
-      if (appointmentSec.Child.Name) {
-        childName = appointmentSec.Child.Name.split(" ")[0];
+      var childName = "Participant name N/A";
+      if (contextSec.participantName) {
+        childName = contextSec.participantName.split(" ")[0];
       }
 
       body += "<tr>";
