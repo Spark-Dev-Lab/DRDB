@@ -13,73 +13,110 @@ const { buildWelcomeEmail } = require("../utils/userTemplates");
  * @returns {Object} The created lab record (with Personnels)
  */
 exports.createLab = async (labData) => {
-  // 1. Set default field values
-  labData.EmailOpening = "<p>Email opening (currently not in use).<p>";
-  labData.EmailClosing =
-    "<p>Please feel free to let us know if you wish to change the time for your study. You can either send us an email.<p>";
-  labData.TYEmail =
-    "<p>Please, if you have a chance, consider spreading the word to other families you may know who might like to participate.<p>";
-  labData.Location =
-    "Psychology Building, McMaster University (used in calendar events)";
-  labData.TransportationInstructions =
-    "<p>Our lab is located at Psychology Building, McMaster University. There are 3 parking lots in front of the building that you can park when you come. We will wait for you at the parking lot.<p>";
+  let step = "initialize";
+  let lab;
 
-  // 2. Generate secure passwords (crypto.randomBytes instead of Math.random)
-  labData.Personnels.forEach((personnel) => {
-    const rawPassword = crypto.randomBytes(8).toString("hex");
-    personnel.unencryptedPassword = rawPassword; // Kept temporarily for the welcome email
-    personnel.Password = bcrypt.hashSync(rawPassword, 10);
-    personnel.temporaryPassword = true;
-  });
+  try {
+    // 1. Set default field values
+    step = "set-default-lab-fields";
+    labData.EmailOpening = "<p>Email opening (currently not in use).<p>";
+    labData.EmailClosing =
+      "<p>Please feel free to let us know if you wish to change the time for your study. You can either send us an email.<p>";
+    labData.TYEmail =
+      "<p>Please, if you have a chance, consider spreading the word to other families you may know who might like to participate.<p>";
+    labData.Location =
+      "Psychology Building, McMaster University (used in calendar events)";
+    labData.TransportationInstructions =
+      "<p>Our lab is located at Psychology Building, McMaster University. There are 3 parking lots in front of the building that you can park when you come. We will wait for you at the parking lot.<p>";
 
-  // 3. Create lab + personnel in the database
-  const lab = await model.lab.create(labData, {
-    include: [model.personnel],
-  });
+    // 2. Generate secure passwords (crypto.randomBytes instead of Math.random)
+    step = "prepare-personnel-passwords";
+    labData.Personnels.forEach((personnel) => {
+      const rawPassword = crypto.randomBytes(8).toString("hex");
+      personnel.unencryptedPassword = rawPassword;
+      personnel.Password = bcrypt.hashSync(rawPassword, 10);
+      personnel.temporaryPassword = true;
+    });
 
-  // 4. Create a sample study with an age group entry
-  const sampleStudy = await model.study.create({
-    StudyName: "Sample study for " + lab.LabName,
-    PhoneScript: "hello there",
-    Description:
-      "Study description should be a short summary of a study. So RAs can read it to parents during recruitment.",
-    EmailTemplate:
-      "<p><strong style='background- color: rgb(254, 254, 254); '>${{childName}}&nbsp;</strong><span style='background - color: rgb(254, 254, 254); '>will be sitting on your lap and watch a short clip of videos on a screen in front of ${{him/her}}. To understand the development of neural system, ${{childName}} will be wearing a recording cap while watching the videos. We will use a camera to monitor ${{his/her}} attention status, which will help us determine the quality of recorded neural signals. The study will last for about 10 minutes.</span></p>",
-    ReminderTemplate:
-      "<p>Please enter a template for reminder email sent to parents for their upcoming study.</p>",
-    FollowUPEmailSnippet: "<p>As we ment.</p>",
-    Completed: false,
-    StudyType: "Behavioural",
-    ASDParticipant: "Include",
-    PrematureParticipant: "Include",
-    HearingLossParticipant: "Include",
-    VisionLossParticipant: "Include",
-    IllParticipant: "Include",
-    FK_Personnel: lab.Personnels[0].id,
-    FK_Lab: lab.id,
-    FK_TestingRoom: null,
-  });
+    // 3. Create lab + personnel in the database
+    step = "create-lab-with-personnel";
+    lab = await model.lab.create(labData, {
+      include: [model.personnel],
+    });
 
-  // Create the default age group for the sample study
-  await model.studyAgeGroup.create({
-    FK_Study: sampleStudy.id,
-    MinAge: 8,
-    MaxAge: 24,
-  });
+    // 4. Create a sample study with an age group entry
+    step = "create-sample-study";
+    const sampleStudy = await model.study.create({
+      StudyName: "Sample study for " + lab.LabName,
+      PhoneScript: "hello there",
+      Description:
+        "Study description should be a short summary of a study. So RAs can read it to parents during recruitment.",
+      EmailTemplate:
+        "<p><strong style='background- color: rgb(254, 254, 254); '>${{childName}}&nbsp;</strong><span style='background - color: rgb(254, 254, 254); '>will be sitting on your lap and watch a short clip of videos on a screen in front of ${{him/her}}. To understand the development of neural system, ${{childName}} will be wearing a recording cap while watching the videos. We will use a camera to monitor ${{his/her}} attention status, which will help us determine the quality of recorded neural signals. The study will last for about 10 minutes.</span></p>",
+      ReminderTemplate:
+        "<p>Please enter a template for reminder email sent to parents for their upcoming study.</p>",
+      FollowUPEmailSnippet: "<p>As we ment.</p>",
+      Completed: false,
+      StudyType: "Behavioural",
+      ASDParticipant: "Include",
+      PrematureParticipant: "Include",
+      HearingLossParticipant: "Include",
+      VisionLossParticipant: "Include",
+      IllParticipant: "Include",
+      FK_Personnel: lab.Personnels[0].id,
+      FK_Lab: lab.id,
+      FK_TestingRoom: null,
+    });
 
-  // 5. Send welcome email to the first personnel (lab admin)
-  const admin = labData.Personnels[0];
-  const welcomeEmail = buildWelcomeEmail(admin.Name, admin.Email, admin.Role, admin.unencryptedPassword);
-  await sendAdminEmail(welcomeEmail);
+    step = "create-default-study-age-group";
+    await model.studyAgeGroup.create({
+      FK_Study: sampleStudy.id,
+      MinAge: 8,
+      MaxAge: 24,
+    });
 
-  // 6. Create lab filesystem directory
-  const labFolderPath = "api/google/labs/lab" + lab.id;
-  if (!fs.existsSync("api/google/labs")) {
-    fs.mkdirSync("api/google/labs");
+    // 5. Send welcome email to the first personnel (lab admin)
+    step = "send-welcome-email";
+    const admin = labData.Personnels[0];
+    const welcomeEmail = buildWelcomeEmail(
+      admin.Name,
+      admin.Email,
+      admin.Role,
+      admin.unencryptedPassword
+    );
+    await sendAdminEmail(welcomeEmail);
+
+    // 6. Create lab filesystem directory
+    step = "create-lab-folder";
+    const labFolderPath = "api/google/labs/lab" + lab.id;
+    if (!fs.existsSync("api/google/labs")) {
+      fs.mkdirSync("api/google/labs");
+    }
+    if (!fs.existsSync(labFolderPath)) {
+      fs.mkdirSync(labFolderPath);
+    }
+
+    return lab;
+  } catch (error) {
+    console.error("[createLab] failed", {
+      step,
+      labName: labData?.LabName,
+      personnelCount: Array.isArray(labData?.Personnels) ? labData.Personnels.length : 0,
+      firstPersonnelEmail: labData?.Personnels?.[0]?.Email,
+      firstPersonnelCalendar: labData?.Personnels?.[0]?.Calendar,
+      createdLabId: lab?.id || null,
+      errorName: error?.name,
+      errorMessage: error?.message,
+      sequelizeErrors: error?.errors?.map((e) => ({
+        message: e.message,
+        type: e.type,
+        path: e.path,
+        value: e.value,
+      })) || null,
+      parentCode: error?.parent?.code || null,
+      parentErrno: error?.parent?.errno || null,
+      parentSqlMessage: error?.parent?.sqlMessage || null,
+    });
+    throw error;
   }
-  if (!fs.existsSync(labFolderPath)) {
-    fs.mkdirSync(labFolderPath);
-  }
-
-  return lab;
 };
