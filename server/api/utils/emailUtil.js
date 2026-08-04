@@ -72,7 +72,7 @@ async function getDefaultSendAsEmail(gmailClient) {
 async function sendAdminEmail({ to, cc, bcc, subject, htmlBody }) {
   const adminGmail = await getAdminGmailClient();
   const adminEmail = await getDefaultSendAsEmail(adminGmail);
-  const from = `Developmental Research Management System <${adminEmail}>`;
+  const from = `Oberlin Community Research Contact Registry <${adminEmail}>`;
 
   const raw = encodeMessage({ to, from, cc, bcc, subject, body: htmlBody });
 

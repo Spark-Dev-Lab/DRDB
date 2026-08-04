@@ -208,7 +208,7 @@ function buildManualReminderBody(schedule) {
     "</p><p>" +
     "However, there is no email in the system to remind them over email. Please give them a call ASAP.</p>" +
     "<p>Thank you!</p><p>" +
-    "Developmental Research Management System</p>";
+    "Oberlin Community Research Contact Registry</p>";
 
   return {
     to:

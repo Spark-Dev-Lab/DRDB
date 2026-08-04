@@ -8,9 +8,9 @@
 const config = require("../../config/general");
 
 const MANUAL_LINK =
-  "<a href='https://docs.google.com/document/d/1oaucm_FrpTxsO7UcOb-r-Y2Ck2zBe1G-BMvw_MD18N0/edit?usp=sharing'>A brief manual</a>";
+  "<a href='https://docs.google.com/document/d/1M7K8Td2jI1SIGhd_EWT94zkG6VdZk-clgRwBFZY-d2w/edit?usp=sharing'>A brief manual (under development)</a>";
 const GOOGLE_SETUP_LINK =
-  "<a href='https://mcmasteru365-my.sharepoint.com/:p:/g/personal/xiaon8_mcmaster_ca/ERk1uev-LENDrca6aWXwSqYBAn1J1OEsJ3tNjPkbpvcwtA?e=Gz73ZK'>How to set up a Google account to activate email and calendar functions.</a>";
+  "How to set up a Google account to activate email and calendar functions. (coming soon)";
 
 /**
  * Welcome email sent when a new user account is created.
@@ -21,10 +21,10 @@ function buildWelcomeEmail(name, email, role, password) {
 
   return {
     to: name + " <" + email + ">",
-    subject: "Your ObCRC (Oberlin Community Registry) user account has been created!",
+    subject: "Your ObCRC (Oberlin Community Research Contact Registry) user account has been created!",
     htmlBody:
       "<p>Hello " + firstName + ",</p> " +
-      "<p>Welcome to the ObCRC (Oberlin Community Registry) management system!<br>" +
+      "<p>Welcome to the ObCRC (Oberlin Community Research Contact Registry) management system!<br>" +
       "Your role is <b>" + role + "</b>, and your temporary password is <b><em>" + password + "</em></b>. " +
       "Please log in with your email and temporary password at <a href=\"" + config.URL + "\">" + config.URL + "</a> to set a new password. " +
       "<em>Note: You may be unable to access this link unless you are using campus Wi-Fi.</em>" +
@@ -33,7 +33,7 @@ function buildWelcomeEmail(name, email, role, password) {
       "<p>" + MANUAL_LINK + "<br>" + GOOGLE_SETUP_LINK + "</p>" +
       "<p> </p>" +
       "<p>Thank you! <br>" +
-      "Developmental Research Management System</p>",
+      "Oberlin Community Research Contact Registry</p>",
   };
 }
 
@@ -46,14 +46,14 @@ function buildPasswordChangedEmail(name, email) {
 
   return {
     to: name + " <" + email + ">",
-    subject: "Your ObCRC (Oberlin Community Registry) login password is updated.",
+    subject: "Your ObCRC (Oberlin Community Research Contact Registry) login password is updated.",
     htmlBody:
       "<p>Hello " + firstName + ",</p> " +
       "<p>Your login password has recently been changed. <br>" +
       "If you didn't change your password, please contact your lab manager as soon as possible.</p> " +
       "<p> </p>" +
       "<p>Thank you!<br>" +
-      "Developmental Research Management System</p>",
+      "Oberlin Community Research Contact Registry</p>",
   };
 }
 
@@ -74,7 +74,7 @@ function buildPasswordResetEmail(name, email, password) {
       "<p>" + MANUAL_LINK + "<br>" + GOOGLE_SETUP_LINK + "</p>" +
       "<p> </p>" +
       "<p>Thank you! <br>" +
-      "Developmental Research Management System</p>",
+      "Oberlin Community Research Contact Registry</p>",
   };
 }
 
