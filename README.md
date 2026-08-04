@@ -156,6 +156,7 @@ DB_HOST=localhost
 DB_DIALECT=mariadb
 TIMEZONE=America/Toronto
 FRONTEND_URL=https://yourdomain.com
+FEEDBACK_EMAIL_TO=sparkchildlab@gmail.com
 
 # Optional: automatic DB registry backups
 DB_REGISTRY_BACKUP_ENABLED=true
@@ -174,6 +175,8 @@ DB_REGISTRY_BACKUP_COMPRESS=true
 
 > [!NOTE]
 > `FRONTEND_URL` controls the CORS allowed origins. Set it to your production domain. Multiple origins can be comma-separated (e.g., `https://yourdomain.com,http://localhost:5173`).
+>
+> `FEEDBACK_EMAIL_TO` controls where in-app feedback submissions are delivered.
 
 ---
 

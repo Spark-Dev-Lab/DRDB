@@ -83,8 +83,12 @@ function buildPasswordResetEmail(name, email, password) {
  * Used by: feedback.js create
  */
 function buildFeedbackEmail(feedbackEmail, page, title, content) {
+  const feedbackRecipient =
+    (process.env.FEEDBACK_EMAIL_TO || "sparkchildlab@gmail.com").trim() ||
+    "sparkchildlab@gmail.com";
+
   return {
-    to: "babylab@mcmaster.ca",
+    to: feedbackRecipient,
     cc: feedbackEmail,
     subject: "[DRDB feedback] " + title,
     htmlBody:
