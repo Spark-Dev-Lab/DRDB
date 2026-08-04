@@ -15,6 +15,11 @@ const ChildController = require("../api/controllers/child");
 const autoCancelController = require("../api/controllers/autoCancellation");
 const rtuController = require("../api/controllers/RTU");
 const AppointmentController = require("../api/controllers/appointment");
+const {
+  backupDatabaseRegistryRecords,
+  getBackupCronExpression,
+  isDatabaseRegistryBackupEnabled,
+} = require("../api/services/databaseRegistryBackupService");
 
 let scheduledJobPersistenceEnabled = true;
 
@@ -183,6 +188,35 @@ const SCHEDULED_JOBS = [
     }
   }
 ];
+
+if (isDatabaseRegistryBackupEnabled()) {
+  const backupCron = getBackupCronExpression();
+  const cronToUse = cron.validate(backupCron) ? backupCron : "30 2 * * *";
+
+  if (cronToUse !== backupCron) {
+    console.warn(
+      `[Jobs] Invalid DB_REGISTRY_BACKUP_CRON "${backupCron}". Falling back to ${cronToUse}.`
+    );
+  }
+
+  SCHEDULED_JOBS.push({
+    id: "database-registry-backup",
+    name: "Database Registry Backup",
+    description:
+      "Creates automatic MySQL registry backups into database_registry_record_backups.",
+    cron: cronToUse,
+    task: async () => {
+      const result = await backupDatabaseRegistryRecords();
+      console.log(
+        `[CRON] Database backup complete (${result.mode}, ${result.fileCount} file(s)): ${result.rootDir}`
+      );
+    },
+  });
+} else {
+  console.log(
+    "[Jobs] Database registry backup job is disabled (set DB_REGISTRY_BACKUP_ENABLED=true to enable)."
+  );
+}
 
 function getScopedRuntimeKey(jobId, labId) {
   if (EDITABLE_JOB_IDS.has(jobId)) {

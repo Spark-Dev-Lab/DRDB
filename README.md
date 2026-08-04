@@ -156,6 +156,20 @@ DB_HOST=localhost
 DB_DIALECT=mariadb
 TIMEZONE=America/Toronto
 FRONTEND_URL=https://yourdomain.com
+
+# Optional: automatic DB registry backups
+DB_REGISTRY_BACKUP_ENABLED=true
+DB_REGISTRY_BACKUP_FREQUENCY=daily
+# Optional explicit cron override (server local timezone)
+# DB_REGISTRY_BACKUP_CRON=30 2 * * *
+# single: one SQL file per run, tables: one folder per day with one SQL file per table
+DB_REGISTRY_BACKUP_MODE=single
+# Destination directory for backup files
+DB_REGISTRY_BACKUP_DIR=/Volumes/T7/database_registry_record_backups
+# Retention window in days (older backups are removed)
+DB_REGISTRY_BACKUP_RETENTION_DAYS=30
+# Compress SQL dumps to .sql.gz
+DB_REGISTRY_BACKUP_COMPRESS=true
 ```
 
 > [!NOTE]
@@ -178,6 +192,15 @@ Cron jobs are defined in `server/jobs/scheduler.js` and registered from `server/
 | **04:00 PM** | Send reminder emails to experimenters for next-day studies |
 | **05:00 PM** | Send reminder emails to parents for next-day studies |
 | **10:46 PM** | Update monthly/weekly study appointment summaries |
+| **02:30 AM** | Database registry backup (when enabled) |
+
+### Database Registry Backups
+
+- Automated by the backend scheduler in `server/jobs/scheduler.js`.
+- Backup service implementation: `server/api/services/databaseRegistryBackupService.js`.
+- Manual one-time run: `cd server && npm run backup:registry`.
+- Default behavior is a single dated MySQL dump file.
+- Set `DB_REGISTRY_BACKUP_MODE=tables` to write multiple files under a dated folder (YYYYMMDD).
 
 ---
 
