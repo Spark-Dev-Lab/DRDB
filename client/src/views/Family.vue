@@ -1236,7 +1236,7 @@
                 <v-icon size="small" class="mr-1" color="grey"
                   >mdi-information-outline</v-icon
                 >
-                <span>Only schedules updated within the last 7 days can be deleted.</span>
+                <span>Use the delete icon on any timeline card to permanently delete a schedule.</span>
               </div>
 
               <div style="overflow-x: auto; padding-bottom: 24px; padding-top: 8px">
@@ -1263,7 +1263,7 @@
                     v-for="schedule in reversedSchedules"
                     :key="schedule.id"
                     :schedule="schedule"
-                    :deletable="isScheduleDeletable(schedule)"
+                    :deletable="true"
                     @delete="confirmDeleteTimelineSchedule"
                   />
                 </div>
@@ -2595,12 +2595,17 @@ export default {
         if (this.scheduleToDelete.Appointments) {
           for (const app of this.scheduleToDelete.Appointments) {
             if (app.calendarEventId) {
-              await calendar.delete({
-                id: app.id,
-                eventId: app.calendarEventId,
-                FK_Schedule: this.scheduleToDelete.id,
-                lab: this.store.lab,
-              });
+              try {
+                await calendar.delete({
+                  id: app.id,
+                  eventId: app.calendarEventId,
+                  FK_Schedule: this.scheduleToDelete.id,
+                  lab: this.store.lab,
+                });
+              } catch (error) {
+                // Do not block DB deletion when external calendar cleanup fails.
+                console.warn("Failed to delete calendar event during schedule deletion:", error);
+              }
             }
           }
         }
@@ -2631,14 +2636,6 @@ export default {
       } finally {
         this.isDeletingTimelineSchedule = false;
       }
-    },
-
-    isScheduleDeletable(schedule) {
-      if (!schedule.updatedAt) return false;
-      const updatedDate = moment(schedule.updatedAt).startOf("day");
-      const today = moment().startOf("day");
-      const daysDifference = moment.duration(today.diff(updatedDate)).asDays();
-      return daysDifference <= 7;
     },
 
     getTimelineColor(status, completed) {

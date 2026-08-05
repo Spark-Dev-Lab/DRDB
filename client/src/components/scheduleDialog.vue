@@ -712,6 +712,7 @@ export default {
       newSchedule.Appointments.forEach((app) => {
         const testingRoom = this.store.testingRooms.find(room => room.id === app.Study.FK_TestingRoom);
         let calendarId = (testingRoom?.calendarId || '').trim() || 'primary';
+        const physicalSpace = this.getAssignedPhysicalSpaceText(app);
         app.calendarId = calendarId;
 
         calendarEvents.push({
@@ -719,7 +720,7 @@ export default {
           AppointmentTime: newSchedule.AppointmentTime,
           description: newSchedule.description,
           summary: newSchedule.summary,
-          location: newSchedule.location,
+          location: physicalSpace || newSchedule.location,
           attendees: app.attendees,
           eventId: app.calendarEventId || newSchedule.calendarEventId || null,
           eventURL: app.eventURL || newSchedule.eventURL || null,
@@ -814,6 +815,7 @@ export default {
       updatedSchedule.Appointments.forEach((app) => {
         const testingRoom = this.store.testingRooms.find(room => room.id === app.Study.FK_TestingRoom);
         let calendarId = (testingRoom?.calendarId || '').trim() || 'primary';
+        const physicalSpace = this.getAssignedPhysicalSpaceText(app);
         app.calendarId = calendarId;
 
         updatedCalendarEvents.push({
@@ -821,7 +823,7 @@ export default {
           AppointmentTime: updatedSchedule.AppointmentTime,
           description: updatedSchedule.description,
           summary: updatedSchedule.summary,
-          location: updatedSchedule.location,
+          location: physicalSpace || updatedSchedule.location,
           attendees: app.attendees,
           eventId: app.calendarEventId || updatedSchedule.calendarEventId || null,
           eventURL: app.eventURL || updatedSchedule.eventURL || null,
@@ -887,13 +889,33 @@ export default {
       return studyNames.join(" + ");
     },
 
+    getAssignedPhysicalSpaceText(app) {
+      const roomId = app?.Study?.FK_TestingRoom;
+      if (!roomId) return "";
+
+      const testingRoom = (this.store.testingRooms || []).find((room) => room.id === roomId);
+      if (!testingRoom) return "";
+
+      const roomName = (testingRoom.name || "").trim();
+      const roomLocation = (testingRoom.location || "").trim();
+
+      if (roomName && roomLocation) return `${roomName} (${roomLocation})`;
+      return roomName || roomLocation;
+    },
+
     calendarDescription(Appointments, Note) {
       let description = "<b>Note: </b>" + Note + "<br>";
       Appointments.forEach((app) => {
+        const physicalSpace = this.getAssignedPhysicalSpaceText(app);
+
         description += "<br>==================" +
           "<br><b>" + app.Study.StudyName + "</b><br>" +
           "<b>E1: </b>" + app.E1 + "<br>" +
           "<b>E2: </b>" + app.E2 + "<br>";
+
+        if (physicalSpace) {
+          description += "<b>Assigned Physical Space: </b>" + physicalSpace + "<br>";
+        }
 
         if (app.Study.StudyType === "Online" && app.PrimaryExperimenter[0] && app.PrimaryExperimenter[0].ZoomLink) {
           description += "<b>zoom link: </b>" + app.PrimaryExperimenter[0].ZoomLink;
